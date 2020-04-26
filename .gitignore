@@ -1,0 +1,13 @@
+.idea
+*.pyc
+.vscode
+.DS_Store
+*.o
+*.so
+*.pyc
+*.swp
+*.swo
+.DS_Store
+*/.DS_Store
+__pycache__
+cmake-build-debug/*
