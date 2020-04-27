@@ -27,18 +27,15 @@ namespace cpparmc {
             u_int8_t ver_algo;
             u_int8_t platform;
             u_int8_t flag;
-            u_int32_t digest;
             u_int64_t mtime;
-            u_int64_t header_crc;
+            u_int32_t header_crc;
         };
 
         struct ARMCPackageHeader {
             u_int64_t package_length;
             u_char symbol_bit;
-            u_int64_t final_range_L;
-            u_int64_t final_range_R;
             u_int64_t uncompress_length;
-            u_int64_t pkg_crc;
+            u_int32_t pkg_crc;
         };
     };
 }

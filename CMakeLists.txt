@@ -7,10 +7,12 @@ INCLUDE_DIRECTORIES(
         ${CMAKE_SOURCE_DIR}/external/spdlog/include/
         ${CMAKE_SOURCE_DIR}/external/fmt/include/
         ${CMAKE_SOURCE_DIR}/external/CRCpp/inc/
+        ${CMAKE_SOURCE_DIR}/external/googletest/googletest/include/
 )
 
 ADD_SUBDIRECTORY(external/spdlog)
 ADD_SUBDIRECTORY(external/fmt)
+ADD_SUBDIRECTORY(external/googletest)
 
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test)

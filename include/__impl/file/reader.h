@@ -9,22 +9,26 @@
 
 namespace cpparmc {
 
-    class ARMCFileReader: public ARMCFileMixin {
+    using namespace stream;
 
-        InputFileDevice input_stream;
+    namespace file {
 
-        u_int read_package_head();
+        class ARMCFileReader : public ARMCFileMixin {
 
-    public:
-        ARMCFileReader(const std::string& fn,
-                       const armc_params& params,
-                       const armc_coder_params& coder_params);
+            stream::InputFileDevice input_stream;
 
-        void open();
+            u_int64_t read_package_head();
 
-        std::basic_string<u_char> read();
-    };
+        public:
+            ARMCFileReader(const std::string& fn,
+                           const armc_params& params,
+                           const armc_coder_params& coder_params);
 
+            void open();
+
+            std::basic_string<u_char> read();
+        };
+    }
 }
 
 #endif //CPPARMC_READER_H

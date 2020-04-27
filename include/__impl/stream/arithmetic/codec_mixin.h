@@ -30,17 +30,17 @@ namespace cpparmc {
         constexpr static u_int64_t cr = cl + cm;
 
     public:
-        CodecMixin(const armc_params& params, const armc_coder_params& coder_params):
-                   params(params),
-                   coder_params(coder_params),
-                   total_symbol(1U << params.symbol_bit),
-                   L(0U), R(counter_limit), D(R - L), follow(0U),
-                   stat(total_symbol, 1),
-                   accumulative_stat(total_symbol) {
-            this->update_stat();
+        CodecMixin(const armc_params& params, const armc_coder_params& coder_params) :
+                params(params),
+                coder_params(coder_params),
+                total_symbol(1U << params.symbol_bit),
+                L(0U), R(counter_limit), D(R - L), follow(0U),
+                stat(total_symbol, 1),
+                accumulative_stat(total_symbol) {
+            update_model();
         };
 
-        void update_stat() {
+        void update_model() {
             const auto stat_sum = std::accumulate(stat.cbegin(), stat.cend(), 0UL);
 
             std::partial_sum(stat.cbegin(), stat.cend(), accumulative_stat.begin());
@@ -50,8 +50,12 @@ namespace cpparmc {
                            accumulative_stat.begin(),
                            [=](auto r) { return static_cast<double>(r) / stat_sum * counter_limit; });
         }
+
+        void update_model(u_int64_t symbol) {
+            stat[symbol] += 1U;
+            update_model();
+        }
     };
 }
-
 
 #endif //CPPARMC_ARITHMETIC_CODEC_MIXIN_H

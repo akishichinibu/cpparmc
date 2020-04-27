@@ -2,6 +2,7 @@
 #define CPPARMC_READER_HPP
 
 #include <sstream>
+#include <CRC.h>
 
 #include "__impl/file/reader.h"
 #include "__impl/stream/arithmetic/decode.hpp"
@@ -9,63 +10,72 @@
 
 namespace cpparmc {
 
-    u_int ARMCFileReader::read_package_head() {
-        ARMCPackageHeader package_header{};
-        this->input_stream.read(package_header);
+    using namespace stream;
 
-        printf("The pkg_len=[%lu] uncompress_len=[%lu]\n",
-                package_header.package_length, package_header.uncompress_length);
+    namespace file {
 
-        return package_header.uncompress_length;
-    }
+        u_int64_t ARMCFileReader::read_package_head() {
+            ARMCPackageHeader package_header{};
+            this->input_stream.read(package_header);
 
-    ARMCFileReader::ARMCFileReader(const std::string& fn,
-                                   const armc_params& params,
-                                   const armc_coder_params& coder_params) :
-            ARMCFileMixin(fn, params, coder_params),
-            input_stream(InputFileDevice(fn)) {}
+            spdlog::info("The pkg_len=[{:d}] uncompress_len=[{:d}]\n",
+                    package_header.package_length, package_header.uncompress_length);
 
-    void ARMCFileReader::open() {
-        if (this->has_open) {
-            throw std::runtime_error("The file has been opened. ");
+            return package_header.uncompress_length;
         }
 
-        has_open = true;
+        ARMCFileReader::ARMCFileReader(const std::string& fn,
+                                       const armc_params& params,
+                                       const armc_coder_params& coder_params) :
+                ARMCFileMixin(fn, params, coder_params),
+                input_stream(InputFileDevice(fn)) {}
 
-        input_stream.open();
+        void ARMCFileReader::open() {
+            if (this->has_open) {
+                throw std::runtime_error("The file has been opened. ");
+            }
 
-        ARMCFileHeader file_header{};
-        input_stream.read(file_header);
-    }
+            has_open = true;
 
-    std::basic_string<u_char> ARMCFileReader::read() {
-        if (!has_open) {
-            throw std::runtime_error("The file should be opened first. ");
+            ARMCFileHeader file_header{};
+            input_stream.read(file_header);
+
+            u_int32_t crc = CRC::Calculate(&file_header, sizeof(ARMCFileHeader) - 4U, CRC::CRC_32());
+
+            if (file_header.header_crc != crc) {
+                spdlog::error("The crc of the header has change. ");
+            }
         }
 
-        const auto uncompressed_length = this->read_package_head();
+        std::basic_string<u_char> ARMCFileReader::read() {
+            if (!has_open) {
+                throw std::runtime_error("The file should be opened first. ");
+            }
 
-        BitStream<InputFileDevice> s1 {
-                input_stream,
-                1U
-        };
+            const auto uncompressed_length = this->read_package_head();
 
-        ArithmeticCDecode<BitStream<InputFileDevice>> s2 {
-                s1,
-                uncompressed_length,
-                params,
-                coder_params
-        };
+            BitStream<InputFileDevice> s1{
+                    input_stream,
+                    1U
+            };
 
-        std::basic_stringstream<u_char> output_stream;
+            ArithmeticCDecode<BitStream<InputFileDevice>> s2{
+                    s1,
+                    uncompressed_length,
+                    params,
+                    coder_params
+            };
 
-        while (true) {
-            const auto c = s2.get();
-            if (s2.eof()) break;
-            output_stream.put(c);
+            std::basic_stringstream<u_char> output_stream;
+
+            while (true) {
+                const auto c = s2.get();
+                if (s2.eof()) break;
+                output_stream.put(c);
+            }
+
+            return output_stream.str();
         }
-
-        return output_stream.str();
     }
 }
 

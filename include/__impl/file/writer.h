@@ -8,29 +8,30 @@
 #include "__impl/stream/bit_stream.hpp"
 
 
-
 namespace cpparmc {
+    using namespace stream;
 
-    class ARMCFileWriter: public ARMCFileMixin {
-        OutputFileDevice output_stream;
+    namespace file {
 
-        void write_package(u_int64_t uncompress_length,
-                std::pair<u_int64_t, u_int64_t> final_range,
-                std::basic_string<u_char>&& s);
+        class ARMCFileWriter : public ARMCFileMixin {
+            OutputFileDevice output_stream;
 
-    public:
-        ARMCFileWriter(const std::string& fn,
-                       const armc_params& params,
-                       const armc_coder_params& coder_params);
+            void write_package(u_int64_t uncompress_length, std::basic_string<u_char>&& s);
 
-        void open();
+        public:
+            ARMCFileWriter(const std::string& fn,
+                           const armc_params& params,
+                           const armc_coder_params& coder_params);
 
-        void write_header();
+            void open();
 
-        void write(InputFileDevice& s);
+            void write_header();
 
-        void close();
-    };
+            void write(InputFileDevice& s);
+
+            void close();
+        };
+    }
 }
 
 #endif //CPPARMC_WRITER_H

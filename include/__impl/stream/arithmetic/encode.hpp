@@ -9,14 +9,15 @@
 
 #include "__impl/stream/arithmetic/codec_mixin.h"
 #include "__impl/stream/stream_base.hpp"
-#include "__impl/utils/bit_utils.hpp"
+#include "__impl/utils/bit_operation.hpp"
+#include "__impl/utils/asum_tree.hpp"
 
 
-namespace cpparmc {
+namespace cpparmc::stream {
 
     template<typename Device>
     class ArithmeticEncode : public InputStream<Device>, public CodecMixin {
-        u_int32_t ch = 0;
+        u_int64_t ch = 0;
         std::deque<bool> bit_buffer;
 
     public:
@@ -26,7 +27,7 @@ namespace cpparmc {
                          const armc_params& params,
                          const armc_coder_params& coder_params);
 
-        u_int32_t get();
+        u_int64_t get() final;
     };
 
     template<typename Device>
@@ -38,7 +39,7 @@ namespace cpparmc {
             input_count(0U) {}
 
     template<typename Device>
-    u_int32_t ArithmeticEncode<Device>::get() {
+    u_int64_t ArithmeticEncode<Device>::get() {
         // pop one symbol
         while (bit_buffer.size() < this->output_width) {
             ch = this->device.get();
@@ -49,7 +50,7 @@ namespace cpparmc {
             const auto nL = ch == 0 ? 0 : accumulative_stat[ch - 1];
             const auto nR = accumulative_stat[ch];
 
-#ifdef ENCODER_DEBUG
+#ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
             const auto ooL = L;
             const auto ooR = R;
 #endif
@@ -58,7 +59,7 @@ namespace cpparmc {
             L = L + static_cast<double>(nL) / counter_limit * D;
             D = R - L;
 
-#ifdef ENCODER_DEBUG
+#ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
             printf("[read][symbol: %5u][L:%10lu ~ R:%10lu ~ D:%10lu][histL:%10lu ~ histR:%10lu][oL:%10lu ~ oR:%10lu]\n", ch, L, R, D, nL, nR, ooL, ooR);
 #endif
 
@@ -66,7 +67,7 @@ namespace cpparmc {
 
             while (true) {
                 if ((L >= cm) || (R < cm)) {
-#ifdef ENCODER_DEBUG
+#ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
                     const auto oL = L;
                     const auto oR = R;
 #endif
@@ -78,8 +79,8 @@ namespace cpparmc {
                         L -= cm;
                     }
 
-#ifdef ENCODER_DEBUG
-                    printf("[side][L:%10lu ~ R:%10lu ~ D:%10lu][oL:%10lu ~ oR:%10lu] output:%u follow:%lu\n", L, R, D, oL, oR, output_bit, follow);
+#ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
+                        printf("[side][L:%10lu ~ R:%10lu ~ D:%10lu][oL:%10lu ~ oR:%10lu] output:%u follow:%lu\n", L, R, D, oL, oR, output_bit, follow);
 #endif
 
                     assert((L < R) && (R <= counter_limit));
@@ -87,7 +88,7 @@ namespace cpparmc {
                     while (follow > 0) {
                         bit_buffer.push_back(!output_bit);
                         follow -= 1;
-#ifdef ENCODER_DEBUG
+#ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
                         printf("[folw][L:%10lu ~ R:%10lu ~ D:%10lu][oL:%10lu ~ oR:%10lu] output:%u follow:%lu\n", L, R, D, oL, oR, !output_bit, follow);
 #endif
                     }
@@ -98,7 +99,7 @@ namespace cpparmc {
                     L -= cl;
                     R -= cl;
 
-#ifdef ENCODER_DEBUG
+#ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
                     printf("[ mid][L:%10lu ~ R:%10lu ~ D:%10lu][cl:%10lu ~ cm:%10lu ~ cr:%10lu] follow=[%lu]\n",
                            L, R, D, cl, cm, cr, follow);
 #endif
@@ -113,18 +114,13 @@ namespace cpparmc {
                 D = R - L;
             }
 
-            stat[ch] += 1;
-            this->update_stat();
+            this->update_model(ch);
 
-#ifdef PRINT_STAT
+#ifdef CPPARMC_DEBUG_PRINT_MODEL
             for (auto i = 0; i < total_symbol; i++) {
                 printf("%lu   ", accumulative_stat[i]);
-
-                if ((i + 1) % 20 == 0) {
-                    printf("\n");
-                }
+                if ((i + 1) % 20 == 0) printf("\n");
             }
-            printf("\n");
 #endif
         }
 
@@ -146,7 +142,7 @@ namespace cpparmc {
         u_char c = 0U;
 
         for (auto i = 0; i < this->output_width; i++) {
-            c = set_nth_bit(c, bit_buffer.empty() ? false : bit_buffer.front(), this->output_width - 1 - i);
+            c = bits::set_nth_bit(c, bit_buffer.empty() ? false : bit_buffer.front(), this->output_width - 1 - i);
             if (!bit_buffer.empty()) bit_buffer.pop_front();
         }
 

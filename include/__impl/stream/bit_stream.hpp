@@ -7,56 +7,47 @@
 
 #include "__impl/stream/stream_base.hpp"
 #include "__impl/stream/file_device.hpp"
+#include "__impl/utils/bit_operation.hpp"
 
 
-namespace cpparmc {
+namespace cpparmc::stream {
 
     template<typename Device>
-    class BitStream: public InputStream<Device> {
+    class BitStream : public InputStream<Device> {
 
     private:
-        u_int32_t ch;
-        u_int32_t buffer;
-        u_char buffer_length;
+        u_int64_t ch;
+        u_int64_t buffer;
+        u_char buf_len;
 
     public:
-        BitStream(Device& device, u_char output_width):
+        BitStream(Device& device, u_char output_width) :
                 InputStream<Device>(device, device.output_width, output_width),
                 ch(0U),
                 buffer(0U),
-                buffer_length(0U) {}
+                buf_len(0U) {}
 
-        u_int32_t get() final {
-            while (buffer_length < this->output_width) {
+        u_int64_t get() final {
+            while (buf_len < this->output_width) {
                 ch = this->device.get();
                 if (this->device.eof()) break;
 
-                buffer = (buffer << this->input_width) | ch;
-                buffer_length += this->input_width;
-#ifdef BIT_STREAM_DEBUG
-                printf("[bit_stream %d:%d] %10d %10d %10d %10d\n",
-                        this->input_width, this->output_width, ch, buffer, buffer_length, this->device.eof());
+                buffer = bits::append_bits(buffer, ch, this->input_width);
+                buf_len += this->input_width;
+#ifdef CPPARMC_DEBUG_BIT_STREAM
+                spdlog::debug("[bit_stream {:d}->{:d}] ch:[{:10d}] buffer:[{:10d}] buf_len:[{:10d}] eof:[{:3d}]",
+                              this->input_width, this->output_width, ch, buffer, buf_len, this->device.eof());
 #endif
             }
 
-            if (buffer_length == 0) {
+            if (buf_len == 0) {
                 this->_eof = true;
                 return EOF;
             }
 
-            if (buffer_length <= this->output_width) {
-                const auto rest_width = this->output_width - buffer_length;
-                const auto c = buffer << rest_width;
-                buffer = 0U;
-                buffer_length = 0U;
-                return c;
-            } else {
-                const auto rest_width = buffer_length - this->output_width;
-                const auto c = buffer >> rest_width;
-                buffer &= (1U << rest_width) - 1U;
-                buffer_length = rest_width;
-                return c;
-            }
+            u_int64_t c;
+            std::tie(c, buf_len) = bits::pop_bits(buffer, buf_len, this->output_width);
+            return c;
         }
     };
 }
