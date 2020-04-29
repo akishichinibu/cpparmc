@@ -34,7 +34,7 @@ namespace cpparmc::stream {
                          const armc_params& params,
                          const armc_coder_params& coder_params);
 
-        std::uint64_t get() final;
+        std::int64_t get() final;
     };
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
@@ -48,7 +48,7 @@ namespace cpparmc::stream {
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     auto ArithmeticEncode<Device, SymbolType, CounterType, counter_bit>
-    ::get() -> std::uint64_t {
+    ::get() -> std::int64_t {
         // pop one symbol
         while (bit_buffer_length < this->output_width) {
             ch = this->device.get();

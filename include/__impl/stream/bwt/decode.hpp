@@ -3,32 +3,31 @@
 
 namespace cpparmc::stream {
 
-    template<typename Device, typename T>
-    class BWTRLEDecode : public InputStream<Device> {
-        typedef T size_type;
-        constexpr static u_char m_width = std::numeric_limits<size_type>::digits;
+    template<typename Device, typename SizeType=std::uint64_t>
+    class BWTDecode : public InputStream<Device> {
+        constexpr static u_char m_width = std::numeric_limits<SizeType>::digits;
 
-        size_type buffer_size;
-        size_type block_size;
+        SizeType buffer_size;
+        SizeType block_size;
 
         darray <u_char> buffer;
         darray <u_char> btw_buffer;
-        size_type output_pos;
+        SizeType output_pos;
 
-        darray <size_type> K;
-        darray <size_type> P;
+        darray <SizeType> K;
+        darray <SizeType> P;
         darray <u_int32_t> C;
 
-        size_type m0;
+        SizeType m0;
 
     public:
-        BWTRLEDecode(Device& device, std::size_t block_size);
+        BWTDecode(Device& device, std::size_t block_size);
 
         u_int64_t get() final;
     };
 
-    template<typename Device, typename T>
-    BWTRLEDecode<Device, T>::BWTRLEDecode(Device& device, std::size_t block_size):
+    template<typename Device, typename SizeType>
+    BWTDecode<Device, SizeType>::BWTDecode(Device& device, std::size_t block_size):
             InputStream<Device>(device, 8U, 8U),
             buffer_size(0U),
             block_size(block_size),
@@ -41,8 +40,8 @@ namespace cpparmc::stream {
             m0(0U) {
     }
 
-    template<typename Device, typename T>
-    u_int64_t BWTRLEDecode<Device, T>::get() {
+    template<typename Device, typename SizeType>
+    u_int64_t BWTDecode<Device, SizeType>::get() {
         if (output_pos == buffer_size) {
             buffer_size = 0U;
 

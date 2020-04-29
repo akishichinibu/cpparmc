@@ -31,7 +31,7 @@ namespace cpparmc::stream {
                          const armc_params& params,
                          const armc_coder_params& coder_params);
 
-        std::uint64_t get();
+        std::int64_t get();
     };
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
@@ -58,18 +58,18 @@ namespace cpparmc::stream {
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     auto ArithmeticDecode<Device, SymbolType, CounterType, counter_bit>
-    ::get() -> std::uint64_t {
+    ::get() -> std::int64_t {
         if (output_count == uncompressed_length) {
             this->_eof = true;
             return EOF;
         }
 
 #ifdef CPPARMC_DEBUG_PRINT_MODEL
-        for (auto i = 0; i < this->total_symbol; i++) {
-            printf("%lu   ", this->model.at(i));
-            if ((i + 1) % 20 == 0) printf("\n");
-        }
-        printf("\n");
+            for (auto i = 0; i < this->total_symbol; i++) {
+                printf("%lu   ", this->model.at(i));
+                if ((i + 1) % 20 == 0) printf("\n");
+            }
+            printf("\n");
 #endif
 
         assert((this->L <= value) && (value < this->R));

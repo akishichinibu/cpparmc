@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "__impl/stream/stream_base.hpp"
-#include "__impl/stream/file_device.hpp"
+#include "__impl/stream/file/read.hpp"
 #include "__impl/utils/bit_operation.hpp"
 
 
@@ -14,10 +14,11 @@ namespace cpparmc::stream {
 
     template<typename Device>
     class BitStream : public InputStream<Device> {
+        typedef std::int64_t SymbolType;
 
     private:
-        u_int64_t ch;
-        u_int64_t buffer;
+        SymbolType ch;
+        SymbolType buffer;
         u_char buf_len;
 
     public:
@@ -27,7 +28,7 @@ namespace cpparmc::stream {
                 buffer(0U),
                 buf_len(0U) {}
 
-        u_int64_t get() final {
+        SymbolType get() final {
             while (buf_len < this->output_width) {
                 ch = this->device.get();
                 if (this->device.eof()) break;
@@ -45,7 +46,7 @@ namespace cpparmc::stream {
                 return EOF;
             }
 
-            u_int64_t c;
+            SymbolType c;
             std::tie(c, buf_len) = bits::pop_bits(buffer, buf_len, this->output_width);
             return c;
         }
