@@ -14,7 +14,7 @@ namespace cpparmc::bits {
     }
 
     template<typename T, typename R>
-    u_int64_t append_bit(T origin, R val) {
+    T append_bit(T origin, R val) {
         return (origin << 1U) | static_cast<bool>(val);
     }
 

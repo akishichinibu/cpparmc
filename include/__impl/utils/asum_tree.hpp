@@ -7,64 +7,106 @@
 
 namespace cpparmc::utils {
 
-    template<typename T, typename R>
+    template<typename ValueType=std::uint64_t, typename IndexType=std::uint64_t>
     class ASumTree {
-        typedef T value_type;
-        typedef R index_type;
+        u_char nums_level;
+        IndexType length;
 
-        u_char level;
-        darray<value_type> data;
+        darray <ValueType> index;
+        darray <ValueType> data;
+
+        constexpr ValueType low_bit(IndexType nums);
 
     public:
-        ASumTree(u_char level);
+        ASumTree(u_char nums_level);
 
-        value_type add(index_type index, value_type val, bool return_result=false);
+        void add(IndexType i, ValueType val);
 
-        value_type asum(index_type index);
+        ValueType at(IndexType i);
 
-        value_type find(value_type s);
+        IndexType size() const;
+
+        ValueType sum();
+
+        ValueType asum(IndexType i);
+
+        template<typename W>
+        IndexType find(W s);
     };
 
-    template<typename T, typename R>
-    ASumTree<T, R>::ASumTree(u_char level):
-    level(level), data(darray<value_type>((1U << level) - 1U), 0U) {}
+    template<typename ValueType, typename IndexType>
+    ASumTree<ValueType, IndexType>::ASumTree(u_char nums_level):
+            nums_level(nums_level),
+            length(1U << nums_level),
+            data(darray<ValueType>(length, 0U)),
+            index(darray<ValueType>(length, 0U)) {}
 
-    template<typename T, typename R>
-    auto ASumTree<T, R>::asum(index_type index) -> value_type {
-        index += 1U;
-        if (index == 1U) return data[index - 1U];
-
-        const auto height = bits::get_bits_width(index);
-        value_type result = 0U;
-
-        for (auto i = height - 1U; i >= 0U; i--) {
-            const value_type cur = index >> i;
-            const bool choice = bits::get_nth_bit(index, i);
-
-            if (choice) {
-                result += data[((cur << 1U) | 0U) - 1U];
-            }
-
-            cur = (cur << 1U) | choice;
-        }
-
-        return result + data[index - 1U];
+    template<typename ValueType, typename IndexType>
+    constexpr auto ASumTree<ValueType, IndexType>
+    ::low_bit(IndexType nums) -> ValueType {
+        return nums & (-nums);
     }
 
-    template<typename T, typename R>
-    auto ASumTree<T, R>::add(index_type index, value_type val, bool return_result) -> value_type {
-        const auto shift_index = index + 1U;
-        const auto height = bits::get_bits_width(shift_index);
+    template<typename ValueType, typename IndexType>
+    auto ASumTree<ValueType, IndexType>
+    ::at(IndexType i) -> ValueType { return data[i]; }
 
-        for (auto i = height - 1U; i >= 0U; i--) {
-            const value_type cur = index >> i;
-            data[cur - 1U] += val;
-        }
-
-        return return_result ? asum(index) - asum(index - 1U) : 0U;
+    template<typename ValueType, typename IndexType>
+    auto ASumTree<ValueType, IndexType>
+    ::size() const -> IndexType {
+        return length;
     }
 
+    template<typename ValueType, typename IndexType>
+    void ASumTree<ValueType, IndexType>
+    ::add(IndexType i, ValueType val) {
+        i += 1U;
+        data[i - 1U] += val;
 
+        while (i <= length) {
+            index[i - 1U] += val;
+            i += low_bit(i);
+        }
+    }
+
+    template<typename ValueType, typename IndexType>
+    auto ASumTree<ValueType, IndexType>::sum() -> ValueType {
+        return index[length - 1U];
+    }
+
+    template<typename ValueType, typename IndexType>
+    auto ASumTree<ValueType, IndexType>::asum(IndexType i) -> ValueType {
+        if (i < 0U) return 0U;
+        if (i >= length) return this->sum();
+
+        ValueType result = 0U;
+        i += 1U;
+
+        while (i > 0U) {
+            result += index[i - 1U];
+            i -= low_bit(i);
+        }
+
+        return result;
+    }
+
+    template<typename ValueType, typename IndexType>
+    template<typename W>
+    auto ASumTree<ValueType, IndexType>::find(W s) -> IndexType {
+        if (s < index[0U]) return 0U;
+        if (s >= index[length - 1U]) return length;
+
+        IndexType rL = 0U, rR = length;
+
+        while (rL + 1U != rR) {
+            const IndexType rM = (rL + rR) >> 1U;
+            const ValueType vM = asum(rM);
+            (s >= vM ? rL : rR) = rM;
+        }
+
+        assert((asum(rL) <= s) && (s < asum(rR)));
+        return rR;
+    }
 }
 
 #endif //CPPARMC_ASUM_TREE_HPP

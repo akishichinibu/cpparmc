@@ -3,31 +3,32 @@
 
 #include "setting.h"
 #include "__impl/darray.hpp"
+#include "__impl/utils/asum_tree.hpp"
 
 
 namespace cpparmc {
+
+    template<typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     class CodecMixin {
 
-    public:
-        constexpr static u_int8_t counter_bit = 62U;
-        constexpr static u_int64_t counter_limit = 1LU << counter_bit;
+    protected:
+        static_assert(counter_bit <= std::numeric_limits<CounterType>::digits);
+        constexpr static CounterType counter_limit = 1LU << counter_bit;
 
         armc_params params{};
         armc_coder_params coder_params{};
 
-        u_int64_t total_symbol;
-        u_int64_t L, R, D, follow;
+        CounterType total_symbol;
+        CounterType L, R, D, follow;
 
-        darray<u_int64_t> stat;
-        darray<u_int64_t> accumulative_stat;
+        utils::ASumTree<CounterType, SymbolType> model;
 
-    protected:
         // [0, 0.25)
-        constexpr static u_int64_t cl = counter_limit >> 2U;
+        constexpr static CounterType cl = counter_limit >> 2U;
         // 0.5
-        constexpr static u_int64_t cm = counter_limit >> 1U;
+        constexpr static CounterType cm = counter_limit >> 1U;
         // [0.75, 1)
-        constexpr static u_int64_t cr = cl + cm;
+        constexpr static CounterType cr = cl + cm;
 
     public:
         CodecMixin(const armc_params& params, const armc_coder_params& coder_params) :
@@ -35,25 +36,12 @@ namespace cpparmc {
                 coder_params(coder_params),
                 total_symbol(1U << params.symbol_bit),
                 L(0U), R(counter_limit), D(R - L), follow(0U),
-                stat(total_symbol, 1),
-                accumulative_stat(total_symbol) {
-            update_model();
+                model(params.symbol_bit) {
+            for (auto i = 0; i < model.size(); i++) model.add(i, 1U);
         };
 
-        void update_model() {
-            const auto stat_sum = std::accumulate(stat.cbegin(), stat.cend(), 0UL);
-
-            std::partial_sum(stat.cbegin(), stat.cend(), accumulative_stat.begin());
-
-            std::transform(accumulative_stat.cbegin(),
-                           accumulative_stat.cend(),
-                           accumulative_stat.begin(),
-                           [=](auto r) { return static_cast<double>(r) / stat_sum * counter_limit; });
-        }
-
-        void update_model(u_int64_t symbol) {
-            stat[symbol] += 1U;
-            update_model();
+        void update_model(SymbolType symbol) {
+            model.add(symbol, 1U);
         }
     };
 }

@@ -23,13 +23,13 @@ namespace cpparmc {
                            const armc_params& params,
                            const armc_coder_params& coder_params);
 
-            void open();
+            ARMCFileWriter& open();
 
             void write_header();
 
             void write(InputFileDevice& s);
 
-            void close();
+            void close() final;
         };
     }
 }

@@ -26,7 +26,7 @@ public:
     InputStream(InputDevice& device, u_char input_width, u_char output_width) :
             BaseStream<InputDevice>(device, input_width, output_width), _eof(false) {};
 
-    virtual u_int64_t get() = 0;
+    virtual std::uint64_t get() = 0;
 
     [[nodiscard]] bool eof() const {
         return this->_eof;

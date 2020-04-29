@@ -22,9 +22,9 @@ namespace cpparmc::stream {
         size_type buffer_size;
         size_type block_size;
 
-        darray<u_char> buffer;
-        darray<u_char> bwt_buffer;
-        darray<size_type> bwt_index;
+        darray <u_char> buffer;
+        darray <u_char> bwt_buffer;
+        darray <size_type> bwt_index;
         size_type output_pos;
 
         size_type header_output_count;

@@ -2,7 +2,6 @@
 #define CPPARMC_ARITHMETIC_ENCODE_HPP
 
 #include <cassert>
-#include <deque>
 #include <limits>
 #include <algorithm>
 #include <numeric>
@@ -15,135 +14,160 @@
 
 namespace cpparmc::stream {
 
-    template<typename Device>
-    class ArithmeticEncode : public InputStream<Device>, public CodecMixin {
-        u_int64_t ch = 0;
-        std::deque<bool> bit_buffer;
+    template<typename Device,
+            typename SymbolType=std::uint64_t,
+            typename CounterType=std::uint64_t,
+            std::uint8_t counter_bit = 56U>
+    class ArithmeticEncode :
+            public InputStream<Device>,
+            public CodecMixin<SymbolType, CounterType, counter_bit> {
+
+        SymbolType ch = 0;
+
+        std::uint64_t bit_buffer = 0U;
+        std::uint64_t bit_buffer_length = 0U;
 
     public:
-        u_int64_t input_count;
+        CounterType input_count;
 
         ArithmeticEncode(Device& device,
                          const armc_params& params,
                          const armc_coder_params& coder_params);
 
-        u_int64_t get() final;
+        std::uint64_t get() final;
     };
 
-    template<typename Device>
-    ArithmeticEncode<Device>::ArithmeticEncode(Device& device,
-                                               const armc_params& params,
-                                               const armc_coder_params& coder_params):
+    template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
+    ArithmeticEncode<Device, SymbolType, CounterType, counter_bit>
+    ::ArithmeticEncode(Device& device,
+                       const armc_params& params,
+                       const armc_coder_params& coder_params):
             InputStream<Device>(device, device.output_width, 8U),
-            CodecMixin(params, coder_params),
+            CodecMixin<SymbolType, CounterType, counter_bit>(params, coder_params),
             input_count(0U) {}
 
-    template<typename Device>
-    u_int64_t ArithmeticEncode<Device>::get() {
+    template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
+    auto ArithmeticEncode<Device, SymbolType, CounterType, counter_bit>
+    ::get() -> std::uint64_t {
         // pop one symbol
-        while (bit_buffer.size() < this->output_width) {
+        while (bit_buffer_length < this->output_width) {
             ch = this->device.get();
             if (this->device.eof()) break;
             input_count += 1;
-            assert((0 <= ch) && (ch < total_symbol));
+            assert((0 <= ch) && (ch < this->total_symbol));
 
-            const auto nL = ch == 0 ? 0 : accumulative_stat[ch - 1];
-            const auto nR = accumulative_stat[ch];
+            CounterType nR = this->model.asum(ch);
+            CounterType nL = nR - this->model.at(ch);
 
-#ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
-            const auto ooL = L;
-            const auto ooR = R;
-#endif
-
-            R = L + static_cast<double>(nR) / counter_limit * D;
-            L = L + static_cast<double>(nL) / counter_limit * D;
-            D = R - L;
+            nR = static_cast<double>(nR) / this->model.sum() * this->counter_limit;
+            nL = static_cast<double>(nL) / this->model.sum() * this->counter_limit;
 
 #ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
-            printf("[read][symbol: %5u][L:%10lu ~ R:%10lu ~ D:%10lu][histL:%10lu ~ histR:%10lu][oL:%10lu ~ oR:%10lu]\n", ch, L, R, D, nL, nR, ooL, ooR);
+            const auto ooL = this->L;
+            const auto ooR = this->R;
 #endif
 
-            assert((L < R) && (R <= this->counter_limit));
+            this->R = this->L + static_cast<double>(nR) / this->counter_limit * this->D;
+            this->L = this->L + static_cast<double>(nL) / this->counter_limit * this->D;
+            this->D = this->R - this->L;
+
+#ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
+            printf("[read][symbol: %5u][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][histL:%10lu ~ histR:%10lu][oL:%10lu ~ oR:%10lu]\n", ch, this->L, this->R, this->D, nL, nR, ooL, ooR);
+#endif
+
+            assert((this->L < this->R) && (this->R <= this->counter_limit));
 
             while (true) {
-                if ((L >= cm) || (R < cm)) {
+                if ((this->L >= this->cm) || (this->R < this->cm)) {
 #ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
-                    const auto oL = L;
-                    const auto oR = R;
+                    const auto oL = this->L;
+                    const auto oR = this->R;
 #endif
-                    const bool output_bit = (L >= cm);
-                    bit_buffer.push_back(output_bit);
+                    const bool output_bit = (this->L >= this->cm);
+                    bit_buffer = bits::append_bit(bit_buffer, output_bit);
+                    bit_buffer_length += 1U;
 
                     if (output_bit) {
-                        R -= cm;
-                        L -= cm;
+                        this->R -= this->cm;
+                        this->L -= this->cm;
                     }
 
 #ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
-                        printf("[side][L:%10lu ~ R:%10lu ~ D:%10lu][oL:%10lu ~ oR:%10lu] output:%u follow:%lu\n", L, R, D, oL, oR, output_bit, follow);
+                        printf("[side][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][oL:%10lu ~ oR:%10lu] output:%u this->follow:%lu\n", this->L, this->R, this->D, oL, oR, output_bit, this->follow);
 #endif
 
-                    assert((L < R) && (R <= counter_limit));
+                    assert((this->L < this->R) && (this->R <= this->counter_limit));
 
-                    while (follow > 0) {
-                        bit_buffer.push_back(!output_bit);
-                        follow -= 1;
+                    while (this->follow > 0U) {
+                        bit_buffer = bits::append_bit(bit_buffer, !output_bit);
+                        bit_buffer_length += 1U;
+                        this->follow -= 1U;
 #ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
-                        printf("[folw][L:%10lu ~ R:%10lu ~ D:%10lu][oL:%10lu ~ oR:%10lu] output:%u follow:%lu\n", L, R, D, oL, oR, !output_bit, follow);
+                        printf("[folw][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][oL:%10lu ~ oR:%10lu] output:%u this->follow:%lu\n", this->L, this->R, this->D, oL, oR, !output_bit, this->follow);
 #endif
                     }
 
-                } else if ((cl <= L) && (R < cr)) {
-                    follow += 1;
+                } else if ((this->cl <= this->L) && (this->R < this->cr)) {
+                    this->follow += 1U;
 
-                    L -= cl;
-                    R -= cl;
+                    this->L -= this->cl;
+                    this->R -= this->cl;
 
 #ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
-                    printf("[ mid][L:%10lu ~ R:%10lu ~ D:%10lu][cl:%10lu ~ cm:%10lu ~ cr:%10lu] follow=[%lu]\n",
-                           L, R, D, cl, cm, cr, follow);
+                    printf("[ mid][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][this->cl:%10lu ~ this->cm:%10lu ~ this->cr:%10lu] this->follow=[%lu]\n",
+                           this->L, this->R, this->D, this->cl, this->cm, this->cr, this->follow);
 #endif
 
-                    assert((L < R) && (R <= counter_limit));
+                    assert((this->L < this->R) && (this->R <= this->counter_limit));
                 } else {
                     break;
                 }
 
-                R <<= 1U;
-                L <<= 1U;
-                D = R - L;
+                this->R <<= 1U;
+                this->L <<= 1U;
+                this->D = this->R - this->L;
             }
-
-            this->update_model(ch);
 
 #ifdef CPPARMC_DEBUG_PRINT_MODEL
-            for (auto i = 0; i < total_symbol; i++) {
-                printf("%lu   ", accumulative_stat[i]);
+            for (auto i = 0; i < this->total_symbol; i++) {
+                printf("%lu   ", this->model.at(i));
                 if ((i + 1) % 20 == 0) printf("\n");
             }
+            printf("\n");
 #endif
+
+            this->update_model(ch);
         }
 
-        if (bit_buffer.empty()) {
+        if (bit_buffer_length == 0U) {
             this->_eof = true;
             return EOF;
         }
 
         if (this->device.eof()) {
-            follow += 1;
-            bool output_bit = L >= cl;
-            bit_buffer.push_back(output_bit);
-            while (follow > 0) {
-                bit_buffer.push_back(!output_bit);
-                follow -= 1;
+            this->follow += 1U;
+            bool output_bit = this->L >= this->cl;
+
+            bit_buffer = bits::append_bit(bit_buffer, output_bit);
+            bit_buffer_length += 1U;
+
+            while (this->follow > 0U) {
+                bit_buffer = bits::append_bit(bit_buffer, !output_bit);
+                bit_buffer_length += 1U;
+                this->follow -= 1U;
             }
         }
 
-        u_char c = 0U;
+        std::uint8_t c = 0U;
 
         for (auto i = 0; i < this->output_width; i++) {
-            c = bits::set_nth_bit(c, bit_buffer.empty() ? false : bit_buffer.front(), this->output_width - 1 - i);
-            if (!bit_buffer.empty()) bit_buffer.pop_front();
+            if (bit_buffer_length > 0U) {
+                bool bit_to_add;
+                std::tie(bit_to_add, bit_buffer_length) = bits::pop_bits(bit_buffer, bit_buffer_length, 1U);
+                c = bits::set_nth_bit(c, bit_to_add, this->output_width - 1U - i);
+            } else {
+                c = bits::set_nth_bit(c, false, this->output_width - 1U - i);
+            }
         }
 
         return c;

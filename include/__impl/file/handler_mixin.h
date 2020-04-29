@@ -37,6 +37,8 @@ namespace cpparmc {
             u_int64_t uncompress_length;
             u_int32_t pkg_crc;
         };
+
+        virtual void close() = 0;
     };
 }
 

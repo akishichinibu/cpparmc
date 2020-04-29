@@ -15,7 +15,7 @@ namespace cpparmc {
 
         template<typename W>
         inline explicit darray(std::size_t size, W val) :
-        size(size), darray(size) {
+                darray(size) {
             std::fill(this->begin(), this->end(), val);
         }
 

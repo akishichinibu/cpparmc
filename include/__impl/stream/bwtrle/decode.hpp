@@ -11,13 +11,13 @@ namespace cpparmc::stream {
         size_type buffer_size;
         size_type block_size;
 
-        darray<u_char> buffer;
-        darray<u_char> btw_buffer;
+        darray <u_char> buffer;
+        darray <u_char> btw_buffer;
         size_type output_pos;
 
-        darray<size_type> K;
-        darray<size_type> P;
-        darray<u_int32_t> C;
+        darray <size_type> K;
+        darray <size_type> P;
+        darray <u_int32_t> C;
 
         size_type m0;
 

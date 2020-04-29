@@ -24,9 +24,11 @@ namespace cpparmc {
                            const armc_params& params,
                            const armc_coder_params& coder_params);
 
-            void open();
+            ARMCFileReader& open();
 
             std::basic_string<u_char> read();
+
+            void close() final;
         };
     }
 }

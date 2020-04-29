@@ -12,7 +12,7 @@ int main() {
 
     constexpr auto block_size = 16 * 1024;
 
-    cs::InputFileDevice inpf { fn };
+    cs::InputFileDevice inpf{fn};
     cs::BitStream<cs::InputFileDevice> s1(inpf, 8U);
     cs::BWTRLEEncode<cs::BitStream<cs::InputFileDevice>, u_int64_t> s2(s1, block_size);
     cs::OutputFileDevice outf(fn + ".bwtrle");
@@ -25,7 +25,7 @@ int main() {
 
     outf.flush();
 
-    cs::InputFileDevice inpf2 { fn + ".bwtrle" };
+    cs::InputFileDevice inpf2{fn + ".bwtrle"};
     cs::BitStream<cs::InputFileDevice> s3(inpf2, 8U);
     cs::BWTRLEDecode<cs::BitStream<cs::InputFileDevice>, u_int64_t> s4(s3, block_size);
     cs::OutputFileDevice outf2(fn + ".bwtrle.recover");
