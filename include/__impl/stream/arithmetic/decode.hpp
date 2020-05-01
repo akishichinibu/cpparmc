@@ -31,24 +31,22 @@ namespace cpparmc::stream {
     public:
         ArithmeticDecode(Device& device,
                          std::uint64_t uncompressed_length,
-                         const armc_params& params,
-                         const armc_coder_params& coder_params);
+                         std::uint8_t symbol_bit);
 
-        std::pair<std::uint8_t, std::uint64_t> receive() final;
+        StreamStatus receive() final;
     };
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     ArithmeticDecode<Device, SymbolType, CounterType, counter_bit>
     ::ArithmeticDecode(Device& device,
                        std::uint64_t uncompressed_length,
-                       const armc_params& params,
-                       const armc_coder_params& coder_params):
-            InputStream<Device>(device, 1U, 8U),
-            CodecMixin<SymbolType, CounterType, counter_bit>(params, coder_params),
+                       std::uint8_t symbol_bit):
+            InputStream<Device>(device, 1, 8),
+            CodecMixin<SymbolType, CounterType, counter_bit>(symbol_bit),
             uncompressed_length(uncompressed_length),
-            output_count(0U),
-            value(0U) {
-        if (this->device.output_width != 1U) {
+            output_count(0),
+            value(0) {
+        if (this->device.output_width != 1) {
             throw std::runtime_error("Error input length. ");
         }
 
@@ -61,10 +59,10 @@ namespace cpparmc::stream {
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     auto ArithmeticDecode<Device, SymbolType, CounterType, counter_bit>
-    ::receive() -> std::pair<std::uint8_t, std::uint64_t> {
+    ::receive() -> StreamStatus {
         if (output_count == uncompressed_length) {
             this->_eof = true;
-            return { 0, 0 };
+            return { -1, 0 };
         }
 
         assert((this->L <= value) && (value < this->R));

@@ -3,7 +3,7 @@
 
 namespace cpparmc::stream {
 
-    template<typename Device, typename SizeType=std::uint32_t>
+    template<typename Device, typename SizeType=std::uint64_t>
     class RLEDecode : public InputStream<Device> {
 
         std::int64_t previous_symbol;
@@ -14,7 +14,7 @@ namespace cpparmc::stream {
     public:
         RLEDecode(Device& device, std::uint8_t counter_width);
 
-        std::pair<std::uint8_t, std::uint64_t> receive() final;
+        StreamStatus receive() final;
     };
 
     template<typename Device, typename SizeType>
@@ -22,26 +22,28 @@ namespace cpparmc::stream {
     ::RLEDecode(Device& device, std::uint8_t counter_width):
             InputStream<Device>(device, device.output_width, device.output_width - counter_width),
             previous_symbol(EOF),
-            count(0U),
+            count(0),
             counter_width(counter_width),
             counter_limit(1U << counter_width) {};
 
     template<typename Device, typename SizeType>
     auto RLEDecode<Device, SizeType>
-    ::receive() -> std::pair<std::uint8_t, std::uint64_t> {
-        if ((previous_symbol == EOF) or (count == 0U)) {
+    ::receive() -> StreamStatus {
+        if (previous_symbol == EOF) {
             count = this->device.get();
-
-            if (this->device.eof()) {
-                this->_eof = true;
-                return { 0U, 0U };
-            }
-
+            if (this->device.eof()) return { -1, 0};
             previous_symbol = std::get<0>(bits::pop_bits(count, this->input_width, this->output_width));
+            assert((0 <= count) && (count < counter_limit));
+            return { this->output_width, previous_symbol };
         }
 
-        count -= 1U;
-        return { this->output_width, previous_symbol };
+        if (count == 0) {
+            previous_symbol = EOF;
+            return { 0, 0 };
+        } else {
+            count -= 1;
+            return { this->output_width, previous_symbol };
+        }
     }
 }
 

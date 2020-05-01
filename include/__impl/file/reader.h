@@ -17,11 +17,11 @@ namespace cpparmc {
 
     namespace file {
 
-        class ARMCFileReader : public ARMCFileMixin {
+        class ARMCFileReader: public ARMCFileMixin {
             //+-----------------+-----------------+-----------------+-----------------+
             //|                         PKG LENGTH (exclude self)                     |
             //+-----------------+-----------------+-----------------+-----------------+
-            //|   symbol_bit    |   counter_bit   |                                   |
+            //|   symbol_bit    |                                                     |
             //+-----------------+-----------------+-----------------+-----------------+
             //|                        UNCOMPRESSED LENGTH                            |
             //+-----------------------------------------------------------------------+
@@ -32,12 +32,13 @@ namespace cpparmc {
 
             InputFileDevice<> input_stream;
 
-            u_int64_t read_package_head();
+            std::pair<std::uint8_t, std::uint64_t> read_package_head();
+
+            ARMCFileHeader file_header {};
+            ARMCPackageHeader package_header {};
 
         public:
-            ARMCFileReader(const std::string& fn,
-                           const armc_params& params,
-                           const armc_coder_params& coder_params);
+            explicit ARMCFileReader(const std::string& fn);
 
             ARMCFileReader& open();
 
@@ -46,20 +47,17 @@ namespace cpparmc {
             void close() final;
         };
 
-        u_int64_t ARMCFileReader::read_package_head() {
-            ARMCPackageHeader package_header{};
-//            this->input_stream.read(package_header);
-
+        std::pair<std::uint8_t, std::uint64_t> ARMCFileReader::read_package_head() {
+            this->input_stream.read(package_header.package_length);
+            this->input_stream.read(package_header.symbol_bit);
+            this->input_stream.read(package_header.uncompress_length);
+            this->input_stream.read(package_header.pkg_crc);
             spdlog::info("Read a package with package=[{:d}] uncompress=[{:d}]",
                          package_header.package_length, package_header.uncompress_length);
-
-            return package_header.uncompress_length;
         }
 
-        ARMCFileReader::ARMCFileReader(const std::string& fn,
-                                       const armc_params& params,
-                                       const armc_coder_params& coder_params) :
-                ARMCFileMixin(fn, params, coder_params),
+        ARMCFileReader::ARMCFileReader(const std::string& fn):
+                ARMCFileMixin(fn),
                 input_stream(InputFileDevice<>(fn)) {}
 
         ARMCFileReader& ARMCFileReader::open() {
@@ -68,18 +66,23 @@ namespace cpparmc {
             }
 
             has_open = true;
-
-            ARMCFileHeader file_header{};
-//            input_stream.read(file_header);
+            input_stream.read(file_header._magic_1);
+            input_stream.read(file_header._magic_2);
+            input_stream.read(file_header.ver_algo);
+            input_stream.read(file_header.platform);
+            input_stream.read(file_header.flag);
+            input_stream.read(file_header.mtime);
+            input_stream.read(file_header.header_crc);
 
             if (!((file_header._magic_1 == magic_1) && (file_header._magic_2 == magic_2))) {
                 spdlog::error("Unknown file type with error magic. ");
                 throw std::runtime_error("Unknown file type.");
             }
 
-            u_int32_t crc = CRC::Calculate(&file_header,
-                                           sizeof(ARMCFileHeader) - sizeof(ARMCFileHeader::header_crc),
-                                           CRC::CRC_32());
+            std::uint32_t crc =
+                    CRC::Calculate(&file_header,
+                                   sizeof(ARMCFileHeader) - sizeof(ARMCFileHeader::header_crc),
+                                   CRC::CRC_32());
 
             if (file_header.header_crc != crc) {
                 spdlog::error("The CRC of the header has change. ");
@@ -90,23 +93,22 @@ namespace cpparmc {
             return *this;
         }
 
-        std::basic_string<u_char> ARMCFileReader::read() {
+        std::basic_string<std::uint8_t> ARMCFileReader::read() {
             if (!has_open) {
                 throw std::runtime_error("This file should be opened first. ");
             }
 
-            const auto uncompressed_length = this->read_package_head();
+            this->read_package_head();
 
-            BitStream<InputFileDevice<>> s1{
+            BitStream<InputFileDevice<>> s1 {
                     input_stream,
                     1U
             };
 
-            ArithmeticDecode<BitStream<InputFileDevice<>>> s2{
+            ArithmeticDecode<BitStream<InputFileDevice<>>> s2 {
                     s1,
-                    uncompressed_length,
-                    params,
-                    coder_params
+                    package_header.uncompress_length,
+                    package_header.symbol_bit,
             };
 
             std::basic_stringstream<u_char> output_stream;
@@ -120,9 +122,7 @@ namespace cpparmc {
             return output_stream.str();
         }
 
-        void ARMCFileReader::close() {
-
-        }
+        void ARMCFileReader::close() {}
     }
 }
 

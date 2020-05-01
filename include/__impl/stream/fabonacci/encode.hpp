@@ -24,9 +24,9 @@ namespace cpparmc::stream {
     FibonacciEncode<Device>::
     FibonacciEncode(Device& device, u_int8_t output_width) :
             InputStream<Device>(device, device.output_width, output_width),
-            ch(0U),
-            buffer(0U),
-            buffer_length(0U) {}
+            ch(0),
+            buffer(0),
+            buffer_length(0) {}
 
     template<typename Device>
     std::int64_t FibonacciEncode<Device>::get() {
@@ -42,7 +42,7 @@ namespace cpparmc::stream {
             buffer_length += length;
         }
 
-        if (buffer_length == 0U) {
+        if (buffer_length == 0) {
             this->_eof = true;
             return EOF;
         }
@@ -69,7 +69,7 @@ namespace cpparmc::stream {
 
             ConditionalFibonacciEncode(Device& device, u_int8_t output_width);
 
-        std::pair<std::uint8_t, std::uint64_t> receive() final;
+        StreamStatus receive() final;
     };
 
     template<typename Device>
@@ -83,20 +83,20 @@ namespace cpparmc::stream {
             encode_deci(false) {};
 
     template<typename Device>
-    auto ConditionalFibonacciEncode<Device>::receive() -> std::pair<std::uint8_t, std::uint64_t> {
+    auto ConditionalFibonacciEncode<Device>::receive() -> StreamStatus {
         if (!has_stat) {
-            std::uint64_t count = 0U;
+            std::uint64_t count = 0;
 
             while (true) {
                 this->ch = this->device.get();
                 if (this->device.eof()) break;
-                stat[this->ch] += 1U;
+                stat[this->ch] += 1;
                 count += this->device.output_width;
             }
 
             std::sort(stat.begin(), stat.end(), std::greater<>());
 
-            std::uint64_t length = 0U;
+            std::uint64_t length = 0;
 
             for (auto i = 0; i < total_symbol; i++) {
                 length += stat[i] * std::get<0>(consts::fibonacci_code[i]);

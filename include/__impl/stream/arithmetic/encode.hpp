@@ -27,46 +27,40 @@ namespace cpparmc::stream {
         SymbolType ch = 0;
 
         std::uint64_t bit_buffer = 0U;
-        std::uint8_t bit_buffer_length = 0U;
+        int bit_buffer_length = 0;
 
     public:
         CounterType input_count;
 
-        ArithmeticEncode(Device& device,
-                         const armc_params& params,
-                         const armc_coder_params& coder_params);
+        ArithmeticEncode(Device& device, std::uint8_t symbol_bit, CounterType block_size);
 
-        std::pair<std::uint8_t, std::uint64_t> receive() final;
+        StreamStatus receive() final;
     };
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     ArithmeticEncode<Device, SymbolType, CounterType, counter_bit>
-    ::ArithmeticEncode(Device& device,
-                       const armc_params& params,
-                       const armc_coder_params& coder_params):
-            InputStream<Device>(device, device.output_width, 8U),
-            CodecMixin<SymbolType, CounterType, counter_bit>(params, coder_params),
-            input_count(0U) {}
+    ::ArithmeticEncode(Device& device, std::uint8_t symbol_bit, CounterType block_size):
+            InputStream<Device>(device, device.output_width, 8),
+            CodecMixin<SymbolType, CounterType, counter_bit>(symbol_bit, block_size),
+            input_count(0) {}
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     auto ArithmeticEncode<Device, SymbolType, CounterType, counter_bit>
-    ::receive() -> std::pair<std::uint8_t, std::uint64_t> {
+    ::receive() -> StreamStatus {
         ch = this->device.get();
 
         if (this->device.eof()) {
-            this->follow += 1U;
+            if (this->follow == 0) return { -1, 0 };
+
+            this->follow += 1;
             bool output_bit = (this->L >= this->cl);
 
             bits::append_bit(bit_buffer, output_bit);
-            bit_buffer_length += 1U;
+            bit_buffer_length += 1;
+            bits::concat_bits(bit_buffer, bits::get_n_repeat_bit(!output_bit, this->follow), this->follow);
+            bit_buffer_length += this->follow;
 
-            while (this->follow > 0U) {
-                bits::append_bit(bit_buffer, !output_bit);
-                bit_buffer_length += 1U;
-                this->follow -= 1U;
-            }
-
-            this->_eof = true;
+            this->follow = 0;
             return { bit_buffer_length, bit_buffer };
         }
 
@@ -96,14 +90,15 @@ namespace cpparmc::stream {
         assert((this->L < this->R) && (this->R <= this->counter_limit));
 
         while (true) {
+
             if ((this->L >= this->cm) || (this->R < this->cm)) {
 #ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
                 const auto oL = this->L;
-                    const auto oR = this->R;
+                const auto oR = this->R;
 #endif
                 const bool output_bit = (this->L >= this->cm);
                 bits::append_bit(bit_buffer, output_bit);
-                bit_buffer_length += 1U;
+                bit_buffer_length += 1;
 
                 if (output_bit) {
                     this->R -= this->cm;
@@ -123,10 +118,10 @@ namespace cpparmc::stream {
 
                 bits::concat_bits(bit_buffer, bits::get_n_repeat_bit(!output_bit, this->follow), this->follow);
                 bit_buffer_length += this->follow;
-                this->follow = 0U;
+                this->follow = 0;
 
             } else if ((this->cl <= this->L) && (this->R < this->cr)) {
-                this->follow += 1U;
+                this->follow += 1;
 
                 this->L -= this->cl;
                 this->R -= this->cl;
@@ -159,7 +154,6 @@ namespace cpparmc::stream {
         const auto temp = bit_buffer_length;
         bit_buffer_length = 0;
         return { temp, bit_buffer };
-
     }
 }
 

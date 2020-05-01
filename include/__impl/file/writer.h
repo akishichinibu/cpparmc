@@ -25,7 +25,7 @@ namespace cpparmc {
             //+-----------------+-----------------+-----------------+-----------------+
             //|               MAGIC               |   VER  |  ALGO  |   TAIL MAGIC    |
             //+-----------------+-----------------+-----------------+-----------------+
-            //|    PLATFORM     |      FLAG       |               DIGEST              |
+            //|    PLATFORM     |      FLAG       |                                   |
             //+-----------------+-----------------+-----------------+-----------------+
             //|                                 MTIME                                 |
             //+-----------------+-----------------+-----------------+-----------------+
@@ -41,7 +41,7 @@ namespace cpparmc {
             //+=================+=================+=================+=================+
             OutputFileDevice output_stream;
 
-            void write_package(u_int64_t uncompress_length, std::basic_string<u_char>&& s);
+            void write_package(std::uint64_t uncompress_length, std::basic_string<std::uint8_t>&& s);
 
         public:
             ARMCFileWriter(const std::string& fn,
@@ -57,7 +57,7 @@ namespace cpparmc {
             void close() final;
         };
 
-        void ARMCFileWriter::write_package(u_int64_t uncompress_length, std::basic_string<u_char>&& s) {
+        void ARMCFileWriter::write_package(std::uint64_t uncompress_length, std::basic_string<std::uint8_t>&& s) {
 
             ARMCPackageHeader package_header{
                     sizeof(ARMCPackageHeader) + s.size(),
@@ -100,7 +100,7 @@ namespace cpparmc {
                     0b01001001,
                     0b10101111,
                     0b011110001,
-                    static_cast<u_int64_t>(std::time(nullptr)),
+                    static_cast<std::uint64_t>(std::time(nullptr)),
                     CRC::Calculate(&file_header,
                                    sizeof(ARMCFileHeader) - sizeof(ARMCFileHeader::header_crc),
                                    CRC::CRC_32()),
@@ -115,23 +115,19 @@ namespace cpparmc {
                 throw std::runtime_error("This file should be opened first. ");
             }
 
-            BitStream<InputFileDevice<>> s1{
-                    s,
-                    this->params.symbol_bit
-            };
+            BitStream<InputFileDevice<>> s1{ s, this->params.symbol_bit };
 
             ArithmeticEncode<BitStream<InputFileDevice<>>> s2{
-                    s1,
-                    this->params,
-                    this->coder_params
+                s1,
+                this->params.symbol_bit,
+                this->coder_params.pkg_size
             };
 
-            std::basic_stringstream<u_int8_t> pkg_buffer;
+            std::basic_stringstream<std::uint8_t> pkg_buffer;
 
             while (true) {
                 const auto ch = s2.get();
                 if (s2.eof()) break;
-
                 pkg_buffer.put(ch);
             }
 

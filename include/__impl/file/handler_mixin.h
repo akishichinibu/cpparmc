@@ -15,14 +15,16 @@ namespace cpparmc {
 
         std::string fn;
 
-        armc_params params;
-        armc_coder_params coder_params;
+        armc_params params{};
+        armc_coder_params coder_params{};
 
-        std::size_t total_symbol;
+        std::uint64_t total_symbol = 0;
 
         ARMCFileMixin(const std::string& fn,
                       const armc_params& params,
                       const armc_coder_params& coder_params);
+
+        ARMCFileMixin(const std::string& fn);
 
         struct ARMCFileHeader {
             u_int8_t _magic_1, _magic_2;
@@ -34,10 +36,10 @@ namespace cpparmc {
         };
 
         struct ARMCPackageHeader {
-            u_int64_t package_length;
-            u_char symbol_bit;
-            u_int64_t uncompress_length;
-            u_int32_t pkg_crc;
+            std::uint64_t package_length;
+            std::uint8_t symbol_bit;
+            std::uint64_t uncompress_length;
+            std::uint32_t pkg_crc;
         };
 
         virtual void close() = 0;
@@ -45,11 +47,14 @@ namespace cpparmc {
 
     ARMCFileMixin::ARMCFileMixin(const std::string& fn,
                                  const armc_params& params,
-                                 const armc_coder_params& coder_params) :
+                                 const armc_coder_params& coder_params):
             fn(fn),
             params(params),
             coder_params(coder_params),
             total_symbol(1U << params.symbol_bit) {}
+
+
+    ARMCFileMixin::ARMCFileMixin(const std::string& fn): fn(fn) {}
 }
 
 #endif //CPPARMC_HANDLER_MIXIN_H

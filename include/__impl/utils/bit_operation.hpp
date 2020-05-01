@@ -23,24 +23,22 @@ namespace cpparmc::bits {
         origin = (origin << width) | val;
     }
 
-    template<typename T>
-    inline std::pair<T, std::size_t> pop_bits(T& origin, std::size_t width, std::size_t head) {
-        const auto rest_width = width - head;
-        T buf;
-
-        if (rest_width <= 0U) {
-            buf = origin;
-            origin = 0U;
-            return {buf, 0U};
-        } else {
-            buf = origin >> rest_width;
-            origin &= (1U << rest_width) - 1U;
-            return {buf, rest_width};
-        }
+    inline std::uint64_t get_n_repeat_bit(bool bit, std::size_t n) {
+        return bit ? (1U << n) - 1U : 0U;
     }
 
-    inline std::uint64_t get_n_repeat_bit(bool bit, std::size_t n) {
-        return bit ? (1U << (n + 1U)) - 1U : 0U;
+    template<typename T>
+    inline std::pair<T, std::size_t> pop_bits(T& origin, std::size_t width, std::size_t head) {
+        if (width <= head) {
+            const T buf = origin;
+            origin = 0U;
+            return { buf, 0U };
+        } else {
+            const auto rest_width = width - head;
+            const T buf = origin >> rest_width;
+            origin &= get_n_repeat_bit(true, rest_width);
+            return { buf, rest_width };
+        }
     }
 }
 

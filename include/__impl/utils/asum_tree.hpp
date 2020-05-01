@@ -38,8 +38,8 @@ namespace cpparmc::utils {
     ASumTree<ValueType, IndexType>::ASumTree(u_char nums_level):
             nums_level(nums_level),
             length(1U << nums_level),
-            data(darray<ValueType>(length, 0U)),
-            index(darray<ValueType>(length, 0U)) {}
+            data(darray<ValueType>(length, 0)),
+            index(darray<ValueType>(length, 0)) {}
 
     template<typename ValueType, typename IndexType>
     constexpr auto ASumTree<ValueType, IndexType>
@@ -60,29 +60,29 @@ namespace cpparmc::utils {
     template<typename ValueType, typename IndexType>
     void ASumTree<ValueType, IndexType>
     ::add(IndexType i, ValueType val) {
-        i += 1U;
-        data[i - 1U] += val;
+        i += 1;
+        data[i - 1] += val;
         while (i <= length) {
-            index[i - 1U] += val;
+            index[i - 1] += val;
             i += low_bit(i);
         }
     }
 
     template<typename ValueType, typename IndexType>
     auto ASumTree<ValueType, IndexType>::sum() -> ValueType {
-        return index[length - 1U];
+        return index[length - 1];
     }
 
     template<typename ValueType, typename IndexType>
     auto ASumTree<ValueType, IndexType>::asum(IndexType i) -> ValueType {
-        if (i < 0U) return 0U;
+        if (i < 0) return 0;
         if (i >= length) return this->sum();
 
-        ValueType result = 0U;
+        ValueType result = 0;
 
-        i += 1U;
-        while (i > 0U) {
-            result += index[i - 1U];
+        i += 1;
+        while (i > 0) {
+            result += index[i - 1];
             i -= low_bit(i);
         }
 
@@ -92,12 +92,12 @@ namespace cpparmc::utils {
     template<typename ValueType, typename IndexType>
     template<typename W>
     auto ASumTree<ValueType, IndexType>::find(W s) -> IndexType {
-        if (s < index[0U]) return 0U;
-        if (s >= index[length - 1U]) return length;
+        if (s < index[0]) return 0;
+        if (s >= index[length - 1]) return length;
 
-        IndexType rL = 0U, rR = length;
+        IndexType rL = 0, rR = length;
 
-        while (rL + 1U != rR) {
+        while (rL + 1 != rR) {
             const IndexType rM = (rL + rR) >> 1U;
             const ValueType vM = asum(rM);
             (s >= vM ? rL : rR) = rM;

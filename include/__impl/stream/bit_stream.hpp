@@ -20,22 +20,18 @@ namespace cpparmc::stream {
 
     public:
         BitStream(Device& device, u_char output_width);
-        std::pair<std::uint8_t, std::uint64_t> receive() final;
+        StreamStatus receive() final;
     };
 
     template<typename Device>
     BitStream<Device>::BitStream(Device& device, u_char output_width) :
             InputStream<Device>(device, device.output_width, output_width),
-            ch(0U) {};
+            ch(0) {};
 
     template<typename Device>
-    auto BitStream<Device>::receive() -> std::pair<std::uint8_t, std::uint64_t> {
+    auto BitStream<Device>::receive() -> StreamStatus {
         ch = this->device.get();
-        if (this->device.eof()) {
-            return { 0, 0 };
-        } else {
-            return { this->output_width, ch };
-        }
+        return { this->device.eof() ? -1 : this->input_width, ch };
     }
 }
 

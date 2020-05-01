@@ -29,18 +29,18 @@ namespace cpparmc::stream {
     public:
         BWTDecode(Device& device, SizeType block_size);
 
-        std::pair<std::uint8_t, std::uint64_t> receive() final;
+        StreamStatus receive() final;
     };
 
     template<typename Device, typename SymbolType, typename SizeType>
     BWTDecode<Device, SymbolType, SizeType>::BWTDecode(Device& device, SizeType block_size):
-            InputStream<Device>(device, 8U, 8U),
-            buffer_size(0U),
+            InputStream<Device>(device, 8, 8),
+            buffer_size(0),
             block_size(block_size),
             total_symbol(1U << this->input_width),
             buffer(block_size),
             btw_buffer(block_size),
-            pos(0U),
+            pos(0),
             M(block_size),
             L(total_symbol),
             stat(total_symbol),
@@ -48,28 +48,25 @@ namespace cpparmc::stream {
     }
 
     template<typename Device, typename SymbolType, typename SizeType>
-    auto BWTDecode<Device, SymbolType, SizeType>::receive() -> std::pair<std::uint8_t, std::uint64_t> {
+    auto BWTDecode<Device, SymbolType, SizeType>::receive() -> StreamStatus {
         while (pos < buffer_size) {
             return { this->output_width, buffer.at(pos++) };
         }
 
-        buffer_size = 0U;
-        pos = 0U;
+        buffer_size = 0;
+        pos = 0;
 
-        this->device.read(last_one_row);
-
-        if (this->device.eof()) {
-            this->_eof = true;
-            return {0, 0 };
-        }
+        const auto _size = this->device.read(last_one_row);
+        if (this->device.eof()) return {-1, 0 };
+        assert(_size == sizeof(SizeType));
 
 #ifdef CPPARMC_DEBUG_BWT_DECODER
         spdlog::info("The last_one is {:d}", last_one_row);
 #endif
 
-        std::fill(stat.begin(), stat.end(), 0U);
+        std::fill(stat.begin(), stat.end(), 0);
 
-        std::fill(M.begin(), M.end(), 0U);
+        std::fill(M.begin(), M.end(), 0);
 
         while (buffer_size < block_size) {
             const auto ch = this->device.get();
@@ -84,17 +81,14 @@ namespace cpparmc::stream {
         spdlog::info("The buffer size is {:d}", buffer_size);
 #endif
 
-        if (buffer_size == 0U) {
-            this->_eof = true;
-            return { 0, 0 };
-        }
+        if (buffer_size == 0) return {-1, 0 };
 
         std::copy(buffer.begin(), buffer.end(buffer_size), btw_buffer.begin());
         std::sort(btw_buffer.begin(), btw_buffer.end(buffer_size));
 
         SymbolType now = btw_buffer[0];
         SizeType count = 0U;
-        L[0U] = 0U;
+        L[0] = 0;
 
         for (auto i = 1; i < buffer_size; i++) {
             if (btw_buffer[i] != now) {
@@ -105,18 +99,15 @@ namespace cpparmc::stream {
         }
 
 
-#ifdef CPPARMC_DEBUG_BWT_DECODER
+#ifdef CPPARMC_TIMING
         START_TIMER(REORDER_BWT_TABLE);
 #endif
 
-        btw_buffer[buffer_size - 1] = buffer[last_one_row];
-        for (auto i = buffer_size - 1, t = last_one_row; i > 0; i--, t = M[t] + L[buffer[t]]) {
-            btw_buffer[i - 1] = buffer[t];
-        }
+        for (auto i = buffer_size, t = last_one_row; i > 0; i--, t = M[t] + L[buffer[t]]) btw_buffer[i - 1] = buffer[t];
 
         std::copy(btw_buffer.begin(), btw_buffer.end(buffer_size), buffer.begin());
 
-#ifdef CPPARMC_DEBUG_BWT_DECODER
+#ifdef CPPARMC_TIMING
         END_TIMER_AND_OUTPUT_MS(REORDER_BWT_TABLE);
 #endif
         return { this->output_width, buffer.at(pos++) };

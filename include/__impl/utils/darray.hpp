@@ -8,7 +8,7 @@ namespace cpparmc::utils {
     template<typename T>
     class darray {
         std::unique_ptr<T[]> buffer;
-        std::size_t size = 0U;
+        std::size_t size = 0;
 
     public:
         inline explicit darray(std::size_t size) :

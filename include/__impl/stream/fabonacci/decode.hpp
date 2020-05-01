@@ -13,18 +13,18 @@ namespace cpparmc {
 
     public:
         FabonacciDecode(Device& device, u_char output_width);
-        std::pair<std::uint8_t, std::uint64_t> receive() final;
+        StreamStatus receive() final;
     };
 
     template<typename Device>
     FabonacciDecode<Device>::FabonacciDecode(Device& device, u_char output_width) :
-            InputStream<Device>(device, 1U, output_width),
+            InputStream<Device>(device, 1, output_width),
             ch(false),
-            bit_buffer(0U),
-            bit_buffer_size(0U) {};
+            bit_buffer(0),
+            bit_buffer_size(0) {};
 
     template<typename Device>
-    auto FabonacciDecode<Device>::receive() -> std::pair<std::uint8_t, std::uint64_t> {
+    auto FabonacciDecode<Device>::receive() -> StreamStatus {
         ch = this->device.get();
 
         if (this->device.eof()) {
