@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <random>
 
-#include "__impl/darray.hpp"
+#include "__impl/utils/darray.hpp"
 #include "__impl/utils/asum_tree.hpp"
 
 namespace cu = cpparmc::utils;
@@ -29,15 +29,15 @@ TEST(TEST_CPPARMC, test_asum_tree_compare) {
 
     for (auto H = 1U; H <= 16U; H++) {
         const auto nums = 1U << H;
-        const auto N = 1000;
+        const auto N = 10000;
 
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis_t(0, nums);
         std::uniform_int_distribution<> dis_v(0, 100);
 
-        auto test_buf = cpparmc::darray<std::uint32_t>(nums, 0);
-        auto test_accu = cpparmc::darray<std::uint32_t>(nums, 0);
+        auto test_buf = cu::darray<std::uint32_t>(nums, 0);
+        auto test_accu = cu::darray<std::uint32_t>(nums, 0);
 
         auto test_tree = cu::ASumTree<std::uint32_t, std::uint32_t>(H);
 

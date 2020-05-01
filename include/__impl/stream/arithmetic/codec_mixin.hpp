@@ -2,11 +2,13 @@
 #define CPPARMC_ARITHMETIC_CODEC_MIXIN_H
 
 #include "setting.h"
-#include "__impl/darray.hpp"
+#include "__impl/utils/darray.hpp"
 #include "__impl/utils/asum_tree.hpp"
 
 
 namespace cpparmc {
+
+    using namespace setting;
 
     template<typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     class CodecMixin {
@@ -31,19 +33,27 @@ namespace cpparmc {
         constexpr static CounterType cr = cl + cm;
 
     public:
-        CodecMixin(const armc_params& params, const armc_coder_params& coder_params) :
-                params(params),
-                coder_params(coder_params),
-                total_symbol(1U << params.symbol_bit),
-                L(0U), R(counter_limit), D(R - L), follow(0U),
-                model(params.symbol_bit) {
-            for (auto i = 0; i < model.size(); i++) model.add(i, 1U);
-        };
+        inline CodecMixin(const armc_params& params, const armc_coder_params& coder_params);
 
-        void update_model(SymbolType symbol) {
-            model.add(symbol, 1U);
-        }
+        inline void update_model(SymbolType symbol);
     };
+
+    template<typename SymbolType, typename CounterType, std::uint8_t counter_bit>
+    CodecMixin<SymbolType, CounterType, counter_bit>
+    ::CodecMixin(const armc_params& params, const armc_coder_params& coder_params):
+            params(params),
+            coder_params(coder_params),
+            total_symbol(1U << params.symbol_bit),
+            L(0U), R(counter_limit), D(R - L), follow(0U),
+            model(params.symbol_bit) {
+        for (auto i = 0; i < model.size(); i++) model.add(i, 1U);
+    }
+
+    template<typename SymbolType, typename CounterType, std::uint8_t counter_bit>
+    void CodecMixin<SymbolType, CounterType, counter_bit>
+    ::update_model(SymbolType symbol) {
+        model.add(symbol, 1U);
+    }
 }
 
 #endif //CPPARMC_ARITHMETIC_CODEC_MIXIN_H

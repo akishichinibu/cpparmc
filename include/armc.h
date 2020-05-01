@@ -12,8 +12,8 @@
 #include "__impl/stream/arithmetic/encode.hpp"
 #include "__impl/stream/arithmetic/decode.hpp"
 
-#include "__impl/stream/fabonacci/encode.hpp"
-#include "__impl/stream/fabonacci/decode.hpp"
+//#include "__impl/stream/fabonacci/encode.hpp"
+//#include "__impl/stream/fabonacci/decode.hpp"
 
 #include "__impl/stream/bwt/encode.hpp"
 #include "__impl/stream/bwt/decode.hpp"

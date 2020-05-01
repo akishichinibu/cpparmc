@@ -7,6 +7,8 @@
 
 namespace cpparmc {
 
+    using namespace setting;
+
     class ARMCFileMixin {
     protected:
         bool has_open = false;

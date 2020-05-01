@@ -1,7 +1,7 @@
 #ifndef CPPARMC_ASUM_TREE_HPP
 #define CPPARMC_ASUM_TREE_HPP
 
-#include "__impl/darray.hpp"
+#include "darray.hpp"
 #include "__impl/utils/bit_operation.hpp"
 
 
@@ -12,8 +12,8 @@ namespace cpparmc::utils {
         u_char nums_level;
         IndexType length;
 
-        darray <ValueType> index;
-        darray <ValueType> data;
+        darray<ValueType> index;
+        darray<ValueType> data;
 
         constexpr ValueType low_bit(IndexType nums);
 
@@ -22,11 +22,11 @@ namespace cpparmc::utils {
 
         void add(IndexType i, ValueType val);
 
-        ValueType at(IndexType i);
+        inline ValueType at(IndexType i);
 
-        IndexType size() const;
+        inline IndexType size() const;
 
-        ValueType sum();
+        inline ValueType sum();
 
         ValueType asum(IndexType i);
 
@@ -62,7 +62,6 @@ namespace cpparmc::utils {
     ::add(IndexType i, ValueType val) {
         i += 1U;
         data[i - 1U] += val;
-
         while (i <= length) {
             index[i - 1U] += val;
             i += low_bit(i);
@@ -80,8 +79,8 @@ namespace cpparmc::utils {
         if (i >= length) return this->sum();
 
         ValueType result = 0U;
-        i += 1U;
 
+        i += 1U;
         while (i > 0U) {
             result += index[i - 1U];
             i -= low_bit(i);

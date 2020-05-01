@@ -1,7 +1,12 @@
 #ifndef CPPARMC_BWT_DECODE_HPP
 #define CPPARMC_BWT_DECODE_HPP
 
+#include "__impl/compile_base.h"
+#include "__impl/utils/darray.hpp"
+
 namespace cpparmc::stream {
+
+    using namespace utils;
 
     template<typename Device, typename SymbolType=u_char, typename SizeType=std::uint32_t>
     class BWTDecode : public InputStream<Device> {
@@ -33,8 +38,8 @@ namespace cpparmc::stream {
             buffer_size(0U),
             block_size(block_size),
             total_symbol(1U << this->input_width),
-            buffer(this->block_size),
-            btw_buffer(this->block_size),
+            buffer(block_size),
+            btw_buffer(block_size),
             pos(0U),
             M(block_size),
             L(total_symbol),
@@ -62,9 +67,9 @@ namespace cpparmc::stream {
         spdlog::info("The last_one is {:d}", last_one_row);
 #endif
 
-        std::fill(stat.begin(), stat.end(), 0);
+        std::fill(stat.begin(), stat.end(), 0U);
 
-        std::fill(M.begin(), M.end(), 0);
+        std::fill(M.begin(), M.end(), 0U);
 
         while (buffer_size < block_size) {
             const auto ch = this->device.get();
@@ -72,7 +77,6 @@ namespace cpparmc::stream {
             buffer[buffer_size] = ch;
             M[buffer_size] = stat[ch];
             buffer_size += 1;
-
             stat[ch] += 1;
         }
 
@@ -85,21 +89,18 @@ namespace cpparmc::stream {
             return { 0, 0 };
         }
 
-        std::copy(buffer.begin(), buffer.end(), btw_buffer.begin());
-        std::sort(btw_buffer.begin(), btw_buffer.begin() + buffer_size);
+        std::copy(buffer.begin(), buffer.end(buffer_size), btw_buffer.begin());
+        std::sort(btw_buffer.begin(), btw_buffer.end(buffer_size));
 
         SymbolType now = btw_buffer[0];
         SizeType count = 0U;
         L[0U] = 0U;
 
         for (auto i = 1; i < buffer_size; i++) {
-            if (btw_buffer[i] == now) {
-                // pass
-            } else {
+            if (btw_buffer[i] != now) {
                 count += stat[now];
                 now = btw_buffer[i];
             }
-
             L[btw_buffer[i]] = count;
         }
 
@@ -109,14 +110,11 @@ namespace cpparmc::stream {
 #endif
 
         btw_buffer[buffer_size - 1] = buffer[last_one_row];
-        auto t = last_one_row;
-        for (auto i = buffer_size - 1; i > 0; i--) {
-            auto nt = M[t] + L[buffer[t]];
-            btw_buffer[i - 1] = buffer[nt];
-            t = nt;
+        for (auto i = buffer_size - 1, t = last_one_row; i > 0; i--, t = M[t] + L[buffer[t]]) {
+            btw_buffer[i - 1] = buffer[t];
         }
 
-        for (auto i = 0; i < buffer_size; i++) buffer[i] = btw_buffer[i];
+        std::copy(btw_buffer.begin(), btw_buffer.end(buffer_size), buffer.begin());
 
 #ifdef CPPARMC_DEBUG_BWT_DECODER
         END_TIMER_AND_OUTPUT_MS(REORDER_BWT_TABLE);

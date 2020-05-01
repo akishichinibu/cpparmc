@@ -7,16 +7,19 @@
 #include <numeric>
 
 #include "__impl/stream/stream_base.hpp"
-#include "__impl/stream/arithmetic/codec_mixin.h"
+#include "__impl/stream/arithmetic/codec_mixin.hpp"
+
 #include "__impl/utils/bit_operation.hpp"
 
 
 namespace cpparmc::stream {
 
+    using namespace setting;
+
     template<typename Device,
             typename SymbolType=std::int64_t,
             typename CounterType=std::int64_t,
-            std::uint8_t counter_bit = 52U>
+            std::uint8_t counter_bit = default_count_bit>
     class ArithmeticDecode :
             public InputStream<Device>,
             public CodecMixin<SymbolType, CounterType, counter_bit> {
@@ -52,7 +55,7 @@ namespace cpparmc::stream {
         for (auto i = 0; i < counter_bit; i++) {
             bool bit = this->device.get();
             if (this->device.eof()) bit = false;
-            value = bits::append_bit(value, bit);
+            bits::append_bit(value, bit);
         }
     }
 
@@ -63,14 +66,6 @@ namespace cpparmc::stream {
             this->_eof = true;
             return { 0, 0 };
         }
-
-#ifdef CPPARMC_DEBUG_PRINT_MODEL
-            for (auto i = 0; i < this->total_symbol; i++) {
-                printf("%lu   ", this->model.at(i));
-                if ((i + 1) % 20 == 0) printf("\n");
-            }
-            printf("\n");
-#endif
 
         assert((this->L <= value) && (value < this->R));
 
@@ -90,14 +85,6 @@ namespace cpparmc::stream {
 
         CounterType vL = this->model.asum(rR - 1U);
         CounterType vR = this->model.asum(rR);
-
-#ifdef CPPARMC_DEBUG_ARITHMETIC_DECODER
-        const double __r1 = static_cast<double>(vR) / this->model.sum();
-        const double __r2 = static_cast<double>(vL) / this->model.sum();
-        const double __rv = static_cast<double>(value - oL) / oD;
-        const double __v1 = __r1 * this->D;
-        const double __v2 = __r2 * this->D;
-#endif
 
         this->R = this->L + static_cast<double>(vR) / this->model.sum() * this->D;
         this->L = this->L + static_cast<double>(vL) / this->model.sum() * this->D;
@@ -148,7 +135,7 @@ namespace cpparmc::stream {
 
             bool bit = this->device.get();
             if (this->device.eof()) bit = false;
-            value = bits::append_bit(value, bit);
+            bits::append_bit(value, bit);
 #ifdef CPPARMC_DEBUG_ARITHMETIC_DECODER
             spdlog::info("[Rerange] value=[{:d}][L={:d} ~ R={:d}] ov=[{:d}][oL={:d} ~ oR={:d}]",
                     value, this->L, this->R, ov, oov, ooL, ooR);

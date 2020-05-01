@@ -2,14 +2,14 @@
 #define CPPARMC_FABONACCI_ENCODE_HPP
 
 #include "__impl/stream/stream_base.hpp"
-#include "__impl/fibonacci_code.h"
+#include "fibonacci_code.h"
 
 namespace cpparmc::stream {
 
     template<typename Device>
     class FibonacciEncode : public InputStream<Device> {
 
-        protected:
+    protected:
         std::int64_t ch;
         std::uint64_t buffer;
         std::uint8_t buffer_length;

@@ -4,29 +4,29 @@
 namespace cpparmc::bits {
 
     template<typename T>
-    bool get_nth_bit(T val, std::size_t n) {
+    inline bool get_nth_bit(T val, std::size_t n) {
         return (val >> n) & 1;
     }
 
     template<typename T>
-    u_int64_t set_nth_bit(T val, bool bit, std::size_t n) {
-        return val | (bit << n);
-    }
-
-    template<typename T, typename R>
-    T append_bit(T origin, R val) {
-        return (origin << 1U) | static_cast<bool>(val);
-    }
-
-    template<typename T, typename R>
-    u_int64_t append_bits(T origin, R val, std::size_t width) {
-        return (origin << width) | val;
+    inline void set_nth_bit(T& val, bool bit, std::size_t n) {
+        val = val | (bit << n);
     }
 
     template<typename T>
-    std::pair<u_int64_t, std::size_t> pop_bits(T& origin, std::size_t width, std::size_t head) {
+    inline void append_bit(T& origin, bool bit) {
+        origin = (origin << 1U) | bit;
+    }
+
+    template<typename T, typename R>
+    inline void concat_bits(T& origin, R val, std::size_t width) {
+        origin = (origin << width) | val;
+    }
+
+    template<typename T>
+    inline std::pair<T, std::size_t> pop_bits(T& origin, std::size_t width, std::size_t head) {
         const auto rest_width = width - head;
-        u_int64_t buf;
+        T buf;
 
         if (rest_width <= 0U) {
             buf = origin;
@@ -39,28 +39,9 @@ namespace cpparmc::bits {
         }
     }
 
-    template<typename T>
-    u_int64_t get_range(T origin, std::size_t a, std::size_t b) {
-        const auto mask = (1U << (b - a)) - 1U;
-        return (origin >> a) & mask;
+    inline std::uint64_t get_n_repeat_bit(bool bit, std::size_t n) {
+        return bit ? (1U << (n + 1U)) - 1U : 0U;
     }
-
-    template<typename T, typename R>
-    u_int64_t set_range(T origin, R value, std::size_t a, std::size_t b) {
-        const auto mask = (1U << (b - a)) - 1U;
-        return origin | ((value & mask) << a);
-    }
-
-    template<typename T>
-    u_char get_bits_width(T origin) {
-        u_char count = 0U;
-        while (origin > 0U) {
-            origin >>= 1U;
-            count += 1;
-        }
-        return count;
-    }
-
 }
 
 #endif //CPPARMC_BIT_UTILS_HPP

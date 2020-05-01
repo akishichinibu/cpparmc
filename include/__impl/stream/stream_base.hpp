@@ -7,24 +7,18 @@
 namespace cpparmc::stream {
 
     class BaseStream {
+
     protected:
-        std::int64_t _ch;
-        std::uint64_t _buffer;
-        std::uint8_t _buffer_size;
+        void* _i_device_;
 
     public:
-        void* _device;
-
-        u_char input_width;
-        u_char output_width;
+        std::uint8_t input_width;
+        std::uint8_t output_width;
 
         BaseStream(void* _device, u_char input_width, u_char output_width) :
-                _device(_device),
+                _i_device_(_device),
                 input_width(input_width),
-                output_width(output_width),
-                _ch(0U),
-                _buffer(0U),
-                _buffer_size(0U) {};
+                output_width(output_width) {};
 
         virtual void reset() = 0;
         virtual std::int64_t get() = 0;
@@ -35,6 +29,10 @@ namespace cpparmc::stream {
     class InputStream : public BaseStream {
         static_assert(std::is_base_of_v<BaseStream, InputDevice>);
 
+        std::int64_t _i_ch_;
+        std::uint64_t _i_buffer_;
+        std::uint8_t _i_buffer_size_;
+
     protected:
         bool _eof;
 
@@ -43,9 +41,12 @@ namespace cpparmc::stream {
 
         InputStream(InputDevice& device, u_char input_width, u_char output_width) :
                 BaseStream(nullptr, input_width, output_width),
-                device(device),
-                _eof(false) {
-            this->_device = &this->device;
+                _i_ch_(0U),
+                _i_buffer_(0U),
+                _i_buffer_size_(0U),
+                _eof(false),
+                device(device) {
+            this->_i_device_ = &this->device;
         };
 
         void reset() override {
@@ -57,24 +58,22 @@ namespace cpparmc::stream {
             std::uint8_t size;
             std::uint64_t buf;
 
-            while (_buffer_size < output_width) {
+            while (_i_buffer_size_ < output_width) {
                 std::tie(size, buf) = this->receive();
+                if (size == 0) { break; }
 
-                if (size == 0) {
-                    break;
-                } else {
-                    _buffer = bits::append_bits(_buffer, buf, size);
-                    _buffer_size += size;
-                }
+                bits::concat_bits(_i_buffer_, buf, size);
+                _i_buffer_size_ += size;
             }
 
-            if (_buffer_size == 0) {
+            if (_i_buffer_size_ == 0) {
                 this->_eof = true;
                 return EOF;
             }
 
-            std::tie(_ch, _buffer_size) = bits::pop_bits(_buffer, _buffer_size, this->output_width);
-            return _ch;
+            std::tie(_i_ch_, _i_buffer_size_) =
+                    bits::pop_bits(_i_buffer_, _i_buffer_size_, this->output_width);
+            return _i_ch_;
         }
 
         template<typename T>
@@ -94,6 +93,5 @@ namespace cpparmc::stream {
         [[nodiscard]] bool eof() const { return this->_eof; }
     };
 }
-
 
 #endif //CPPARMC_STREAM_BASE_HPP

@@ -4,10 +4,6 @@
 #include <cstddef>
 #include <spdlog/spdlog.h>
 
-//spdlog::set_level(spdlog::level::debug);
-
-typedef unsigned char u_char;
-
 constexpr static u_char magic_1 = '\x12';
 constexpr static u_char magic_2 = '\x46';
 

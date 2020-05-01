@@ -6,18 +6,20 @@
 #include <algorithm>
 #include <numeric>
 
-#include "__impl/stream/arithmetic/codec_mixin.h"
+#include "__impl/stream/arithmetic/codec_mixin.hpp"
 #include "__impl/stream/stream_base.hpp"
+
 #include "__impl/utils/bit_operation.hpp"
-#include "__impl/utils/asum_tree.hpp"
 
 
 namespace cpparmc::stream {
 
+    using namespace setting;
+
     template<typename Device,
             typename SymbolType=std::uint64_t,
             typename CounterType=std::uint64_t,
-            std::uint8_t counter_bit = 56U>
+            std::uint8_t counter_bit = default_count_bit>
     class ArithmeticEncode:
             public InputStream<Device>,
             public CodecMixin<SymbolType, CounterType, counter_bit> {
@@ -53,13 +55,13 @@ namespace cpparmc::stream {
 
         if (this->device.eof()) {
             this->follow += 1U;
-            bool output_bit = this->L >= this->cl;
+            bool output_bit = (this->L >= this->cl);
 
-            bit_buffer = bits::append_bit(bit_buffer, output_bit);
+            bits::append_bit(bit_buffer, output_bit);
             bit_buffer_length += 1U;
 
             while (this->follow > 0U) {
-                bit_buffer = bits::append_bit(bit_buffer, !output_bit);
+                bits::append_bit(bit_buffer, !output_bit);
                 bit_buffer_length += 1U;
                 this->follow -= 1U;
             }
@@ -68,8 +70,8 @@ namespace cpparmc::stream {
             return { bit_buffer_length, bit_buffer };
         }
 
-        input_count += 1;
         assert((0 <= ch) && (ch < this->total_symbol));
+        input_count += 1;
 
         CounterType nR = this->model.asum(ch);
         CounterType nL = nR - this->model.at(ch);
@@ -87,7 +89,8 @@ namespace cpparmc::stream {
         this->D = this->R - this->L;
 
 #ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
-        printf("[read][symbol: %5u][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][histL:%10lu ~ histR:%10lu][oL:%10lu ~ oR:%10lu]\n", ch, this->L, this->R, this->D, nL, nR, ooL, ooR);
+        printf("[read][symbol: %5u][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][histL:%10lu ~ histR:%10lu][oL:%10lu ~ oR:%10lu]\n",
+                ch, this->L, this->R, this->D, nL, nR, ooL, ooR);
 #endif
 
         assert((this->L < this->R) && (this->R <= this->counter_limit));
@@ -99,7 +102,7 @@ namespace cpparmc::stream {
                     const auto oR = this->R;
 #endif
                 const bool output_bit = (this->L >= this->cm);
-                bit_buffer = bits::append_bit(bit_buffer, output_bit);
+                bits::append_bit(bit_buffer, output_bit);
                 bit_buffer_length += 1U;
 
                 if (output_bit) {
@@ -108,19 +111,19 @@ namespace cpparmc::stream {
                 }
 
 #ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
-                    printf("[side][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][oL:%10lu ~ oR:%10lu] output:%u this->follow:%lu\n", this->L, this->R, this->D, oL, oR, output_bit, this->follow);
+                printf("[side][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][oL:%10lu ~ oR:%10lu] output:%u this->follow:%lu\n", this->L, this->R, this->D, oL, oR, output_bit, this->follow);
 #endif
 
                 assert((this->L < this->R) && (this->R <= this->counter_limit));
 
-                while (this->follow > 0U) {
-                    bit_buffer = bits::append_bit(bit_buffer, !output_bit);
-                    bit_buffer_length += 1U;
-                    this->follow -= 1U;
 #ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
-                    printf("[folw][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][oL:%10lu ~ oR:%10lu] output:%u this->follow:%lu\n", this->L, this->R, this->D, oL, oR, !output_bit, this->follow);
+                printf("[folw][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][oL:%10lu ~ oR:%10lu] output:%u this->follow:%lu\n",
+                        this->L, this->R, this->D, oL, oR, !output_bit, this->follow);
 #endif
-                }
+
+                bits::concat_bits(bit_buffer, bits::get_n_repeat_bit(!output_bit, this->follow), this->follow);
+                bit_buffer_length += this->follow;
+                this->follow = 0U;
 
             } else if ((this->cl <= this->L) && (this->R < this->cr)) {
                 this->follow += 1U;
@@ -134,6 +137,7 @@ namespace cpparmc::stream {
 #endif
 
                 assert((this->L < this->R) && (this->R <= this->counter_limit));
+
             } else {
                 break;
             }

@@ -7,15 +7,17 @@
 #include <CRC.h>
 
 #include "__impl/file/handler_mixin.h"
+#include "__impl/utils/darray.hpp"
 
-#include "__impl/darray.hpp"
 #include "__impl/stream/bit_stream.hpp"
 #include "__impl/stream/file/write.hpp"
 #include "__impl/stream/arithmetic/encode.hpp"
 
 
 namespace cpparmc {
+
     using namespace stream;
+    using namespace setting;
 
     namespace file {
 

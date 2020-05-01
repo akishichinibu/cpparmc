@@ -13,6 +13,7 @@
 namespace cpparmc {
 
     using namespace stream;
+    using namespace setting;
 
     namespace file {
 
