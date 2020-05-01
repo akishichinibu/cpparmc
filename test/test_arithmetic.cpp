@@ -17,7 +17,7 @@ int main() {
 
     std::filesystem::path fn(fn_str);
 
-    cpparmc::InputFileDevice inpf{fn.string()};
+    cpparmc::InputFileDevice<> inpf{fn.string()};
 
     std::filesystem::path out_fn(fn);
     out_fn.replace_extension(fn.extension().string() + ".armc");

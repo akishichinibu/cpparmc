@@ -14,43 +14,29 @@ namespace cpparmc::stream {
 
     template<typename Device>
     class BitStream : public InputStream<Device> {
-        typedef std::int64_t SymbolType;
 
     private:
-        SymbolType ch;
-        SymbolType buffer;
-        u_char buf_len;
+        std::int64_t ch;
 
     public:
-        BitStream(Device& device, u_char output_width) :
-                InputStream<Device>(device, device.output_width, output_width),
-                ch(0U),
-                buffer(0U),
-                buf_len(0U) {}
-
-        SymbolType get() final {
-            while (buf_len < this->output_width) {
-                ch = this->device.get();
-                if (this->device.eof()) break;
-
-                buffer = bits::append_bits(buffer, ch, this->input_width);
-                buf_len += this->input_width;
-#ifdef CPPARMC_DEBUG_BIT_STREAM
-                spdlog::debug("[bit_stream {:d}->{:d}] ch:[{:10d}] buffer:[{:10d}] buf_len:[{:10d}] eof:[{:3d}]",
-                              this->input_width, this->output_width, ch, buffer, buf_len, this->device.eof());
-#endif
-            }
-
-            if (buf_len == 0) {
-                this->_eof = true;
-                return EOF;
-            }
-
-            SymbolType c;
-            std::tie(c, buf_len) = bits::pop_bits(buffer, buf_len, this->output_width);
-            return c;
-        }
+        BitStream(Device& device, u_char output_width);
+        std::pair<std::uint8_t, std::uint64_t> receive() final;
     };
+
+    template<typename Device>
+    BitStream<Device>::BitStream(Device& device, u_char output_width) :
+            InputStream<Device>(device, device.output_width, output_width),
+            ch(0U) {};
+
+    template<typename Device>
+    auto BitStream<Device>::receive() -> std::pair<std::uint8_t, std::uint64_t> {
+        ch = this->device.get();
+        if (this->device.eof()) {
+            return { 0, 0 };
+        } else {
+            return { this->output_width, ch };
+        }
+    }
 }
 
 #endif //CPPARMC_BIT_STREAM_HPP

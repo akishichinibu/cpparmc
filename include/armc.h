@@ -18,6 +18,7 @@
 #include "__impl/stream/bwt/encode.hpp"
 #include "__impl/stream/bwt/decode.hpp"
 
-#include "__impl/stream/string_stream.hpp"
+#include "__impl/stream/rle/encode.hpp"
+#include "__impl/stream/rle/decode.hpp"
 
 #endif //CPPARMC_ARMC_H

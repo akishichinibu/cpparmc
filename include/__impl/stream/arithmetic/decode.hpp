@@ -31,7 +31,7 @@ namespace cpparmc::stream {
                          const armc_params& params,
                          const armc_coder_params& coder_params);
 
-        std::int64_t get();
+        std::pair<std::uint8_t, std::uint64_t> receive() final;
     };
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
@@ -58,10 +58,10 @@ namespace cpparmc::stream {
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     auto ArithmeticDecode<Device, SymbolType, CounterType, counter_bit>
-    ::get() -> std::int64_t {
+    ::receive() -> std::pair<std::uint8_t, std::uint64_t> {
         if (output_count == uncompressed_length) {
             this->_eof = true;
-            return EOF;
+            return { 0, 0 };
         }
 
 #ifdef CPPARMC_DEBUG_PRINT_MODEL
@@ -158,7 +158,7 @@ namespace cpparmc::stream {
 
         this->update_model(symbol);
         output_count += 1U;
-        return symbol;
+        return { this->output_width, symbol };
     }
 }
 

@@ -10,7 +10,6 @@ namespace cpparmc::stream {
 
         void open(const std::string& mode);
 
-    private:
         static void check(int status) {
             if (status) {
                 throw std::runtime_error(fmt::format("File status error: {:d}", status));

@@ -20,6 +20,23 @@ namespace cpparmc {
     namespace file {
 
         class ARMCFileWriter : public ARMCFileMixin {
+            //+-----------------+-----------------+-----------------+-----------------+
+            //|               MAGIC               |   VER  |  ALGO  |   TAIL MAGIC    |
+            //+-----------------+-----------------+-----------------+-----------------+
+            //|    PLATFORM     |      FLAG       |               DIGEST              |
+            //+-----------------+-----------------+-----------------+-----------------+
+            //|                                 MTIME                                 |
+            //+-----------------+-----------------+-----------------+-----------------+
+            //|                               HEADER CRC                              |
+            //+=================+=================+=================+=================+
+            //|                              ...pkg_1...                              |
+            //+=================+=================+=================+=================+
+            //|                              ...pkg_2...                              |
+            //+=================+=================+=================+=================+
+            //|                                  ...                                  |
+            //+=================+=================+=================+=================+
+            //|                              ...pkg_n...                              |
+            //+=================+=================+=================+=================+
             OutputFileDevice output_stream;
 
             void write_package(u_int64_t uncompress_length, std::basic_string<u_char>&& s);
@@ -33,7 +50,7 @@ namespace cpparmc {
 
             void write_header();
 
-            void write(InputFileDevice& s);
+            void write(InputFileDevice<>& s);
 
             void close() final;
         };
@@ -91,17 +108,17 @@ namespace cpparmc {
             this->output_stream.flush();
         }
 
-        void ARMCFileWriter::write(InputFileDevice& s) {
+        void ARMCFileWriter::write(InputFileDevice<>& s) {
             if (!this->has_open) {
                 throw std::runtime_error("This file should be opened first. ");
             }
 
-            BitStream<InputFileDevice> s1{
+            BitStream<InputFileDevice<>> s1{
                     s,
                     this->params.symbol_bit
             };
 
-            ArithmeticEncode<BitStream<InputFileDevice>> s2{
+            ArithmeticEncode<BitStream<InputFileDevice<>>> s2{
                     s1,
                     this->params,
                     this->coder_params

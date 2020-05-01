@@ -13,125 +13,113 @@
 
 namespace cpparmc::stream {
 
-    template<typename Device,
-            typename SizeType=std::uint64_t>
-    class BWTEncode : public InputStream<Device> {
+    template<typename Device, typename SymbolType=u_char, typename SizeType=std::uint32_t>
+    class BWTEncode: public InputStream<Device> {
         constexpr static u_char m_width = std::numeric_limits<SizeType>::digits;
 
         SizeType buffer_size;
         SizeType block_size;
 
-        darray <u_char> buffer;
-        darray <u_char> bwt_buffer;
-        darray <SizeType> bwt_index;
-        SizeType output_pos;
-
-        SizeType header_output_count;
+        darray<SymbolType> buffer;
+        darray<SymbolType> bwt_buffer;
+        darray<SizeType> bwt_index;
+        SizeType pos;
         SizeType m0;
 
     public:
-        BWTEncode(Device& device, std::size_t block_size);
+        BWTEncode(Device& device, SizeType block_size);
 
-        u_int64_t get() final;
+        std::pair<std::uint8_t, std::uint64_t> receive() final;
     };
 
-    template<typename Device, typename SizeType>
-    BWTEncode<Device, SizeType>::BWTEncode(Device& device, std::size_t block_size):
+    template<typename Device, typename SymbolType, typename SizeType>
+    BWTEncode<Device, SymbolType, SizeType>::BWTEncode(Device& device, SizeType block_size):
             InputStream<Device>(device, 8U, 8U),
             buffer_size(0U),
             block_size(block_size + 1U),
             buffer(this->block_size),
             bwt_buffer(this->block_size),
             bwt_index(this->block_size),
-            output_pos(0U),
-            header_output_count(0),
+            pos(0U),
             m0(block_size) {}
 
-    template<typename Device, typename SizeType>
-    u_int64_t BWTEncode<Device, SizeType>::get() {
-        if (output_pos == buffer_size) {
-            buffer_size = 0U;
-
-            for (auto i = 0; i < block_size; i++) {
-                const auto ch = this->device.get();
-                if (this->device.eof()) break;
-                buffer[i] = ch;
-                buffer_size += 1U;
-            }
-
-            if (buffer_size > 0U) {
-
-#ifdef CPPARMC_DEBUG_BWT_ENCODER
-                spdlog::info("Read a block with size: [{:d}]. ", buffer_size);
-#endif
-
-#ifdef CPPARMC_DEBUG_BWT_ENCODER
-                START_TIMER(SORT_BWT_TABLE);
-#endif
-
-                std::iota(bwt_index.begin(), bwt_index.begin() + buffer_size, 0);
-
-                std::sort(bwt_index.begin(),
-                          bwt_index.begin() + buffer_size,
-                          [&](auto& r1, auto& r2) {
-                              for (auto i = 0; i < buffer_size; i++) {
-                                  if (buffer[(r1 + i) % buffer_size] > buffer[(r2 + i) % buffer_size]) return false;
-                              }
-                              return true;
-                          });
-
-                for (auto i = 0; i < buffer_size; i++) {
-                    if (bwt_index[i] == 0U) {
-                        m0 = i;
-                        break;
-                    }
-                }
-
-                if (m0 == block_size) {
-                    throw std::runtime_error("");
-                }
-
-#ifdef CPPARMC_DEBUG_BWT_ENCODER
-                END_TIMER_AND_OUTPUT_MS(SORT_BWT_TABLE);
-#endif
-
-#ifdef CPPARMC_DEBUG_BWT_ENCODER
-                std::cout << "m0: " << m0 << std::endl;
-
-                for (auto i = 0; i < buffer_size; i++) {
-                    printf("%d: %d, ", i, bwt_index[i]);
-
-                    if ((i + 1) % 8 == 0) printf("\n");
-                }
-                printf("\n");
-#endif
-
-                for (auto i = 0; i < buffer_size; i++) bwt_buffer[i] = buffer[(bwt_index[i] + (buffer_size - 1)) % buffer_size];
-                for (auto i = 0; i < buffer_size; i++) buffer[i] = bwt_buffer[i];
-
-                output_pos = 0U;
-                header_output_count = 0U;
-
-#ifdef CPPARMC_DEBUG_BWT_ENCODER
-                spdlog::info("After read the size of bwtrle buffer: {:d}. ", buffer_size);
-#endif
-            }
+    template<typename Device, typename SymbolType, typename SizeType>
+    auto BWTEncode<Device, SymbolType, SizeType>::receive() -> std::pair<std::uint8_t, std::uint64_t> {
+        while (pos < buffer_size) {
+            return { this->output_width, buffer.at(pos++) };
         }
 
-        if (output_pos >= buffer_size) {
+        for (buffer_size = 0U; buffer_size < block_size; buffer_size++) {
+            const auto ch = this->device.get();
+            if (this->device.eof()) break;
+            buffer[buffer_size] = ch;
+        }
+
+        if (buffer_size == 0U) {
             this->_eof = true;
-            return EOF;
+            return { 0, 0 };
         }
 
-        if (header_output_count < m_width) {
-            const u_char ch = bits::get_range(m0, header_output_count << 3U, (header_output_count + 1) << 3U);
-            header_output_count += 1U;
-            return ch;
+
+#ifdef CPPARMC_DEBUG_BWT_ENCODER
+        spdlog::info("Read a block with size: [{:d}]. ", buffer_size);
+#endif
+
+#ifdef CPPARMC_DEBUG_BWT_ENCODER
+        START_TIMER(SORT_BWT_TABLE);
+#endif
+
+        std::iota(bwt_index.begin(), bwt_index.begin() + buffer_size, 0);
+
+        std::sort(bwt_index.begin(),
+                  bwt_index.begin() + buffer_size,
+                  [&](auto r1, auto r2) {
+                      for (auto t = 0; t < buffer_size; t++) {
+                          const auto a = buffer[(t - r1) % buffer_size];
+                          const auto b = buffer[(t - r2) % buffer_size];
+                          if (a != b) return a < b;
+                      }
+                      return true;
+                  });
+
+        m0 = block_size;
+
+        for (auto i = 0; i < buffer_size; i++) {
+            if (bwt_index[i] == 0U) {
+                m0 = i;
+                break;
+            }
         }
 
-        const u_char ch = buffer.at(output_pos);
-        output_pos += 1U;
-        return ch;
+        if (m0 == block_size) {
+            throw std::runtime_error("");
+        }
+
+#ifdef CPPARMC_DEBUG_BWT_ENCODER
+        END_TIMER_AND_OUTPUT_MS(SORT_BWT_TABLE);
+#endif
+
+#ifdef CPPARMC_DEBUG_BWT_ENCODER
+        std::cout << "m0: " << m0 << std::endl;
+
+        for (auto i = 0; i < buffer_size; i++) {
+            printf("%d: %d, ", i, bwt_index[i]);
+
+            if ((i + 1) % 8 == 0) printf("\n");
+        }
+        printf("\n");
+#endif
+
+        for (auto i = 0; i < buffer_size; i++) bwt_buffer[i] = buffer[((buffer_size - 1) - bwt_index[i]) % buffer_size];
+        for (auto i = 0; i < buffer_size; i++) buffer[i] = bwt_buffer[i];
+
+        pos = 0U;
+
+#ifdef CPPARMC_DEBUG_BWT_ENCODER
+        spdlog::info("After read the size of bwtrle buffer: {:d}. ", buffer_size);
+#endif
+
+        return { m_width, m0 };
     }
 }
 
