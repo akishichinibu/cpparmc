@@ -33,7 +33,7 @@ namespace cpparmc {
         constexpr static CounterType cr = cl + cm;
 
     public:
-        inline CodecMixin(std::uint8_t symbol_bit, CounterType block_size=0);
+        inline CodecMixin(std::uint8_t symbol_bit, CounterType block_size = 0);
 
         inline void update_model(SymbolType symbol);
     };

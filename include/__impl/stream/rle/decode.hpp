@@ -4,7 +4,7 @@
 namespace cpparmc::stream {
 
     template<typename Device, typename SizeType=std::uint64_t>
-    class RLEDecode : public InputStream<Device> {
+    class RLEDecode: public InputStream<Device> {
 
         std::int64_t previous_symbol;
         SizeType count;
@@ -31,18 +31,18 @@ namespace cpparmc::stream {
     ::receive() -> StreamStatus {
         if (previous_symbol == EOF) {
             count = this->device.get();
-            if (this->device.eof()) return { -1, 0};
+            if (this->device.eof()) return {-1, 0};
             previous_symbol = std::get<0>(bits::pop_bits(count, this->input_width, this->output_width));
             assert((0 <= count) && (count < counter_limit));
-            return { this->output_width, previous_symbol };
+            return {this->output_width, previous_symbol};
         }
 
         if (count == 0) {
             previous_symbol = EOF;
-            return { 0, 0 };
+            return {0, 0};
         } else {
             count -= 1;
-            return { this->output_width, previous_symbol };
+            return {this->output_width, previous_symbol};
         }
     }
 }

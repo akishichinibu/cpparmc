@@ -13,13 +13,14 @@
 namespace cpparmc::stream {
 
     template<typename Device>
-    class BitStream : public InputStream<Device> {
+    class BitStream: public InputStream<Device> {
 
     private:
         std::int64_t ch;
 
     public:
         BitStream(Device& device, u_char output_width);
+
         StreamStatus receive() final;
     };
 
@@ -31,7 +32,7 @@ namespace cpparmc::stream {
     template<typename Device>
     auto BitStream<Device>::receive() -> StreamStatus {
         ch = this->device.get();
-        return { this->device.eof() ? -1 : this->input_width, ch };
+        return {this->device.eof() ? -1 : this->input_width, ch};
     }
 }
 

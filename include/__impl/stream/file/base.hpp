@@ -26,7 +26,7 @@ namespace cpparmc::stream {
         ~FileDeviceBase();
     };
 
-    FileDeviceBase::FileDeviceBase(const std::string& fn) :
+    FileDeviceBase::FileDeviceBase(const std::string& fn):
             fn(fn), file(nullptr) {}
 
     void FileDeviceBase::open(const std::string& mode) {

@@ -21,7 +21,7 @@ namespace cpparmc {
 
     namespace file {
 
-        class ARMCFileWriter : public ARMCFileMixin {
+        class ARMCFileWriter: public ARMCFileMixin {
             //+-----------------+-----------------+-----------------+-----------------+
             //|               MAGIC               |   VER  |  ALGO  |   TAIL MAGIC    |
             //+-----------------+-----------------+-----------------+-----------------+
@@ -59,7 +59,7 @@ namespace cpparmc {
 
         void ARMCFileWriter::write_package(std::uint64_t uncompress_length, std::basic_string<std::uint8_t>&& s) {
 
-            ARMCPackageHeader package_header{
+            ARMCPackageHeader package_header {
                     sizeof(ARMCPackageHeader) + s.size(),
                     this->params.symbol_bit,
                     uncompress_length,
@@ -76,7 +76,7 @@ namespace cpparmc {
 
         ARMCFileWriter::ARMCFileWriter(const std::string& fn,
                                        const armc_params& params,
-                                       const armc_coder_params& coder_params) :
+                                       const armc_coder_params& coder_params):
                 ARMCFileMixin(fn, params, coder_params),
                 output_stream(OutputFileDevice(this->fn)) {
             spdlog::info("The file {:s} has been open. ", fn);
@@ -94,7 +94,7 @@ namespace cpparmc {
 
         void ARMCFileWriter::write_header() {
 
-            ARMCFileHeader file_header{
+            ARMCFileHeader file_header {
                     magic_1,
                     magic_2,
                     0b01001001,
@@ -115,12 +115,12 @@ namespace cpparmc {
                 throw std::runtime_error("This file should be opened first. ");
             }
 
-            BitStream<InputFileDevice<>> s1{ s, this->params.symbol_bit };
+            BitStream<InputFileDevice<>> s1 {s, this->params.symbol_bit};
 
-            ArithmeticEncode<BitStream<InputFileDevice<>>> s2{
-                s1,
-                this->params.symbol_bit,
-                this->coder_params.pkg_size
+            ArithmeticEncode<BitStream<InputFileDevice<>>> s2 {
+                    s1,
+                    this->params.symbol_bit,
+                    this->coder_params.pkg_size
             };
 
             std::basic_stringstream<std::uint8_t> pkg_buffer;

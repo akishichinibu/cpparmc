@@ -26,43 +26,44 @@ namespace cpparmc::stream {
 
     public:
         RLEEncode(Device& device, std::uint8_t counter_width);
+
         std::pair<std::int16_t, std::uint64_t> receive() final;
     };
 
     template<typename Device, typename SizeType>
     RLEEncode<Device, SizeType>
     ::RLEEncode(Device& device, std::uint8_t counter_width):
-    InputStream<Device>(device, device.output_width, device.output_width + counter_width),
-    previous_symbol(EOF),
-    count(0),
-    counter_width(counter_width),
-    counter_limit(1U << counter_width),
-    has_read(false) {};
+            InputStream<Device>(device, device.output_width, device.output_width + counter_width),
+            previous_symbol(EOF),
+            count(0),
+            counter_width(counter_width),
+            counter_limit(1U << counter_width),
+            has_read(false) {};
 
     template<typename Device, typename SizeType>
     auto RLEEncode<Device, SizeType>::receive() -> StreamStatus {
         const auto ch = this->device.get();
 
         if (this->device.eof()) {
-            if (previous_symbol == EOF) return { -1, 0 };
+            if (previous_symbol == EOF) return {-1, 0};
 
             bits::concat_bits(previous_symbol, count, counter_width);
             const auto temp = previous_symbol;
             previous_symbol = EOF;
-            return { this->output_width, temp };
+            return {this->output_width, temp};
         }
 
         if ((ch == previous_symbol) && (count < counter_limit - 1)) {
             count += 1;
-            return { 0, 0 };
+            return {0, 0};
         } else {
             if (previous_symbol == EOF) {
                 previous_symbol = ch;
                 count = 0;
-                return { 0, 0 };
+                return {0, 0};
             } else {
                 bits::concat_bits(previous_symbol, count, counter_width);
-                const StreamStatus r = { this->output_width, previous_symbol };
+                const StreamStatus r = {this->output_width, previous_symbol};
                 count = 0;
                 previous_symbol = ch;
                 return r;

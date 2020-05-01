@@ -4,7 +4,7 @@
 namespace cpparmc {
 
     template<typename Device>
-    class FabonacciDecode : public InputStream<Device> {
+    class FabonacciDecode: public InputStream<Device> {
 
     private:
         bool ch;
@@ -13,6 +13,7 @@ namespace cpparmc {
 
     public:
         FabonacciDecode(Device& device, u_char output_width);
+
         StreamStatus receive() final;
     };
 
@@ -29,7 +30,7 @@ namespace cpparmc {
 
         if (this->device.eof()) {
             this->_eof = true;
-            return { bit_buffer_size, bit_buffer };
+            return {bit_buffer_size, bit_buffer};
         }
 
         bit_buffer = (bit_buffer << this->input_width) | ch;
@@ -37,7 +38,7 @@ namespace cpparmc {
 
         if ((bit_buffer & 0b11U) != 0U) {
             const auto temp = bit_buffer_size;
-            return { temp, bit_buffer };
+            return {temp, bit_buffer};
         }
     }
 }

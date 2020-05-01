@@ -16,5 +16,5 @@ GET_FILENAME_COMPONENT(name ${src} NAME_WE)
 MESSAGE("*** Now compile `${name}` for current test file ${src}. ")
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${src})
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} spdlog gtest)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} spdlog gtest tbb)
 TARGET_COMPILE_FEATURES(${PROJECT_NAME} PUBLIC cxx_std_17)

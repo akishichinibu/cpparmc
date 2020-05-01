@@ -2,6 +2,7 @@
 #define CPPARMC_DARRAY_HPP
 
 #include <memory>
+#include <execution>
 
 namespace cpparmc::utils {
 
@@ -11,13 +12,17 @@ namespace cpparmc::utils {
         std::size_t size = 0;
 
     public:
-        inline explicit darray(std::size_t size) :
-        size(size), buffer(std::make_unique<T[]>(size)) {}
+        inline explicit darray(std::size_t size):
+                size(size), buffer(std::make_unique<T[]>(size)) {}
 
         template<typename W>
         inline explicit darray(std::size_t size, W val) :
                 darray(size) {
-            std::fill(this->begin(), this->end(), val);
+            std::fill(
+#ifdef USING_PARALLEL_STL
+                    std::execution::par_unseq,
+#endif
+                    this->begin(), this->end(), val);
         }
 
         inline T* begin() { return this->buffer.get(); }
@@ -28,7 +33,9 @@ namespace cpparmc::utils {
 
         inline const T* cbegin() { return this->buffer.get(); }
 
-        inline const T* cend() { return this->buffer.get() + this->size; }
+        inline const T* cend() { return this->end(); }
+
+        inline const T* cend(std::size_t offset) { return this->end(offset); }
 
         inline T& at(std::size_t index) const { return this->buffer[index]; }
 

@@ -19,7 +19,7 @@ FOREACH (testfile ${CPPARMC_TEST_FILES})
     MESSAGE("*** Now compile `${testname}` for current test file ${testfile}. ")
 
     ADD_EXECUTABLE(${testname} ${testfile})
-    TARGET_LINK_LIBRARIES(${testname} spdlog gtest)
+    TARGET_LINK_LIBRARIES(${testname} spdlog gtest tbb)
     TARGET_COMPILE_FEATURES(${testname} PUBLIC cxx_std_17)
 
 ENDFOREACH (testfile ${CPPARMC_TEST_FILES})

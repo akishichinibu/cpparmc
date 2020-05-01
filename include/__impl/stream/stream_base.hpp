@@ -17,18 +17,20 @@ namespace cpparmc::stream {
         std::uint8_t input_width;
         std::uint8_t output_width;
 
-        BaseStream(void* _device, u_char input_width, u_char output_width) :
+        BaseStream(void* _device, u_char input_width, u_char output_width):
                 _i_device_(_device),
                 input_width(input_width),
                 output_width(output_width) {};
 
         virtual void reset() = 0;
+
         virtual std::int64_t get() = 0;
+
         virtual StreamStatus receive() = 0;
     };
 
     template<typename InputDevice>
-    class InputStream : public BaseStream {
+    class InputStream: public BaseStream {
         static_assert(std::is_base_of_v<BaseStream, InputDevice>);
 
     protected:
@@ -41,7 +43,7 @@ namespace cpparmc::stream {
     public:
         InputDevice& device;
 
-        InputStream(InputDevice& device, u_char input_width, u_char output_width) :
+        InputStream(InputDevice& device, u_char input_width, u_char output_width):
                 BaseStream(nullptr, input_width, output_width),
                 _i_ch_(0),
                 _i_buffer_(0),

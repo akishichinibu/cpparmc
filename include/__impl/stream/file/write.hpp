@@ -8,12 +8,12 @@
 
 namespace cpparmc::stream {
 
-    class OutputFileDevice : public FileDeviceBase {
+    class OutputFileDevice: public FileDeviceBase {
 
     public:
         u_char output_width = 8;
 
-        explicit OutputFileDevice(const std::string& fn) :
+        explicit OutputFileDevice(const std::string& fn):
                 FileDeviceBase(fn) {
             this->open("wb");
         }

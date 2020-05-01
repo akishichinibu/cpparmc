@@ -2,6 +2,7 @@
 #define CPPARMC_BWT_ENCODE_HPP
 
 #include <numeric>
+#include <execution>
 #include <map>
 
 #include "__impl/compile_base.h"
@@ -21,9 +22,9 @@ namespace cpparmc::stream {
         SizeType buffer_size;
         SizeType block_size;
 
-        darray<SymbolType> buffer;
-        darray<SymbolType> bwt_buffer;
-        darray<SizeType> bwt_index;
+        darray <SymbolType> buffer;
+        darray <SymbolType> bwt_buffer;
+        darray <SizeType> bwt_index;
         std::map<std::pair<SizeType, SizeType>, bool> cmp_cache;
 
         SizeType pos;
@@ -50,7 +51,7 @@ namespace cpparmc::stream {
     auto BWTEncode<Device, SymbolType, SizeType>::receive() -> StreamStatus {
 
         while (pos < buffer_size) {
-            return { this->output_width, buffer.at(pos++) };
+            return {this->output_width, buffer.at(pos++)};
         }
 
         for (buffer_size = 0; buffer_size < block_size; buffer_size++) {
@@ -59,7 +60,7 @@ namespace cpparmc::stream {
             buffer[buffer_size] = ch;
         }
 
-        if (buffer_size == 0) return { -1, 0 };
+        if (buffer_size == 0) return {-1, 0};
 
 #ifdef CPPARMC_DEBUG_BWT_ENCODER
         spdlog::info("Read a block with size: [{:d}]. ", buffer_size);
@@ -73,25 +74,35 @@ namespace cpparmc::stream {
 
         cmp_cache.clear();
 
-        std::sort(bwt_index.begin(), bwt_index.end(buffer_size),
-                  [&](auto r1, auto r2) {
-            const std::pair<SizeType, SizeType> pair { r1, r2 };
-            const auto _p = cmp_cache.find(pair);
-            if (_p != cmp_cache.end()) return cmp_cache.at(pair);
+        std::sort(
+#ifdef USING_PARALLEL_STL
+                std::execution::par_unseq,
+#endif
+                bwt_index.begin(), bwt_index.end(buffer_size),
+                [&](auto r1, auto r2) {
+                    const std::pair<SizeType, SizeType> pair {r1, r2};
+                    const auto _p = cmp_cache.find(pair);
+                    if (_p != cmp_cache.end()) return cmp_cache.at(pair);
 
-                      for (auto t = 0; t < buffer_size; t++) {
-                          const auto a = buffer[(t - r1) % buffer_size];
-                          const auto b = buffer[(t - r2) % buffer_size];
-                          if (a != b) {
-                              if (t >= (buffer_size >> 1U)) cmp_cache[pair] = a < b;
-                              return a < b;
-                          }
-                      }
-                      cmp_cache[pair] = true;
-                      return true;
-                  });
+                    for (auto t = 0; t < buffer_size; t++) {
+                        const auto a = buffer[(t - r1) % buffer_size];
+                        const auto b = buffer[(t - r2) % buffer_size];
+                        if (a != b) {
+                            if (t >= (buffer_size >> 1U)) cmp_cache[pair] = a < b;
+                            return a < b;
+                        }
+                    }
+                    cmp_cache[pair] = true;
+                    return true;
+                });
 
-        const auto _p = std::find(bwt_index.begin(), bwt_index.end(buffer_size), 0);
+        const auto _p = std::find(
+#ifdef USING_PARALLEL_STL
+                std::execution::par_unseq,
+#endif
+                bwt_index.begin(),
+                bwt_index.end(buffer_size), 0);
+
         m0 = std::distance(bwt_index.begin(), _p);
 
         assert(m0 != buffer_size);
@@ -111,14 +122,22 @@ namespace cpparmc::stream {
 //        printf("\n");
 //#endif
 
-        std::transform(bwt_index.begin(), bwt_index.end(buffer_size), bwt_index.begin(),
+        std::transform(
+#ifdef USING_PARALLEL_STL
+                std::execution::par_unseq,
+#endif
+                bwt_index.begin(), bwt_index.end(buffer_size), bwt_index.begin(),
                 [=](auto r) {
-            return ((buffer_size - 1) - r) % buffer_size;
-        });
+                    return ((buffer_size - 1) - r) % buffer_size;
+                });
 
         for (auto i = 0; i < buffer_size; i++) bwt_buffer[i] = buffer[bwt_index[i]];
 
-        std::copy(bwt_buffer.begin(), bwt_buffer.end(buffer_size), buffer.begin());
+        std::copy(
+#ifdef USING_PARALLEL_STL
+                std::execution::par_unseq,
+#endif
+                bwt_buffer.begin(), bwt_buffer.end(buffer_size), buffer.begin());
 
         pos = 0;
 
@@ -126,7 +145,7 @@ namespace cpparmc::stream {
         spdlog::info("After read the size of bwtrle buffer: {:d}. ", buffer_size);
 #endif
 
-        return { m_width, m0 };
+        return {m_width, m0};
     }
 }
 

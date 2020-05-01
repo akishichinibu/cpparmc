@@ -29,6 +29,9 @@ namespace cpparmc::stream {
         std::uint64_t bit_buffer = 0U;
         int bit_buffer_length = 0;
 
+        bool clean_up_follow;
+        bool follow_bit;
+
     public:
         CounterType input_count;
 
@@ -42,26 +45,35 @@ namespace cpparmc::stream {
     ::ArithmeticEncode(Device& device, std::uint8_t symbol_bit, CounterType block_size):
             InputStream<Device>(device, device.output_width, 8),
             CodecMixin<SymbolType, CounterType, counter_bit>(symbol_bit, block_size),
-            input_count(0) {}
+            input_count(0),
+            clean_up_follow(false),
+            follow_bit(false) {}
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     auto ArithmeticEncode<Device, SymbolType, CounterType, counter_bit>
     ::receive() -> StreamStatus {
+        if (clean_up_follow) {
+            if (this->follow >= this->output_width) {
+                this->follow -= this->output_width;
+                return { this->output_width, bits::get_n_repeat_bit(follow_bit, this->output_width) };
+            } else {
+                clean_up_follow = false;
+                return { this->follow, bits::get_n_repeat_bit(follow_bit, this->follow) };
+            }
+        }
+
         ch = this->device.get();
 
         if (this->device.eof()) {
-            if (this->follow == 0) return { -1, 0 };
+            if (this->follow == 0) return {-1, 0};
 
             this->follow += 1;
-            bool output_bit = (this->L >= this->cl);
+            follow_bit = (this->L >= this->cl);
+            clean_up_follow = true;
 
-            bits::append_bit(bit_buffer, output_bit);
-            bit_buffer_length += 1;
-            bits::concat_bits(bit_buffer, bits::get_n_repeat_bit(!output_bit, this->follow), this->follow);
-            bit_buffer_length += this->follow;
-
-            this->follow = 0;
-            return { bit_buffer_length, bit_buffer };
+            const StreamStatus r = { bit_buffer_length, bit_buffer };
+            bit_buffer_length = 0;
+            return r;
         }
 
         assert((0 <= ch) && (ch < this->total_symbol));
@@ -99,6 +111,7 @@ namespace cpparmc::stream {
                 const bool output_bit = (this->L >= this->cm);
                 bits::append_bit(bit_buffer, output_bit);
                 bit_buffer_length += 1;
+                assert(bit_buffer_length < 64);
 
                 if (output_bit) {
                     this->R -= this->cm;
@@ -106,7 +119,7 @@ namespace cpparmc::stream {
                 }
 
 #ifdef CPPARMC_DEBUG_ARITHMETIC_ENCODER
-                printf("[side][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][oL:%10lu ~ oR:%10lu] output:%u this->follow:%lu\n", this->L, this->R, this->D, oL, oR, output_bit, this->follow);
+                    printf("[side][this->L:%10lu ~ this->R:%10lu ~ this->D:%10lu][oL:%10lu ~ oR:%10lu] output:%u this->follow:%lu\n", this->L, this->R, this->D, oL, oR, output_bit, this->follow);
 #endif
 
                 assert((this->L < this->R) && (this->R <= this->counter_limit));
@@ -116,9 +129,13 @@ namespace cpparmc::stream {
                         this->L, this->R, this->D, oL, oR, !output_bit, this->follow);
 #endif
 
-                bits::concat_bits(bit_buffer, bits::get_n_repeat_bit(!output_bit, this->follow), this->follow);
-                bit_buffer_length += this->follow;
-                this->follow = 0;
+                clean_up_follow = true;
+                follow_bit = !output_bit;
+//
+//                bits::concat_bits(bit_buffer, bits::get_n_repeat_bit(!output_bit, this->follow), this->follow);
+//                bit_buffer_length += this->follow;
+//                assert(bit_buffer_length < 64);
+//                this->follow = 0;
 
             } else if ((this->cl <= this->L) && (this->R < this->cr)) {
                 this->follow += 1;
@@ -153,7 +170,7 @@ namespace cpparmc::stream {
         this->update_model(ch);
         const auto temp = bit_buffer_length;
         bit_buffer_length = 0;
-        return { temp, bit_buffer };
+        return {temp, bit_buffer};
     }
 }
 

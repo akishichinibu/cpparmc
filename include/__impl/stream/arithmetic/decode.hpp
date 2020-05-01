@@ -20,7 +20,7 @@ namespace cpparmc::stream {
             typename SymbolType=std::int64_t,
             typename CounterType=std::int64_t,
             std::uint8_t counter_bit = default_count_bit>
-    class ArithmeticDecode :
+    class ArithmeticDecode:
             public InputStream<Device>,
             public CodecMixin<SymbolType, CounterType, counter_bit> {
 
@@ -62,7 +62,7 @@ namespace cpparmc::stream {
     ::receive() -> StreamStatus {
         if (output_count == uncompressed_length) {
             this->_eof = true;
-            return { -1, 0 };
+            return {-1, 0};
         }
 
         assert((this->L <= value) && (value < this->R));
@@ -143,7 +143,7 @@ namespace cpparmc::stream {
 
         this->update_model(symbol);
         output_count += 1U;
-        return { this->output_width, symbol };
+        return {this->output_width, symbol};
     }
 }
 

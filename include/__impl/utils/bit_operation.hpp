@@ -32,12 +32,12 @@ namespace cpparmc::bits {
         if (width <= head) {
             const T buf = origin;
             origin = 0U;
-            return { buf, 0U };
+            return {buf, 0U};
         } else {
             const auto rest_width = width - head;
             const T buf = origin >> rest_width;
             origin &= get_n_repeat_bit(true, rest_width);
-            return { buf, rest_width };
+            return {buf, rest_width};
         }
     }
 }

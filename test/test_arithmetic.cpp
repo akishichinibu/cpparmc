@@ -6,7 +6,7 @@ namespace cf = cpparmc::file;
 
 int main() {
     cpparmc::armc_params _compress_params = {
-            12,
+            16,
     };
     cpparmc::armc_coder_params _common_params = {
             64 * 1024,

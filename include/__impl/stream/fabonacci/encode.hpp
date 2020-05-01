@@ -7,7 +7,7 @@
 namespace cpparmc::stream {
 
     template<typename Device>
-    class FibonacciEncode : public InputStream<Device> {
+    class FibonacciEncode: public InputStream<Device> {
 
     protected:
         std::int64_t ch;
@@ -57,24 +57,24 @@ namespace cpparmc::stream {
 
 
     template<typename Device>
-    class ConditionalFibonacciEncode : public FibonacciEncode<Device> {
+    class ConditionalFibonacciEncode: public FibonacciEncode<Device> {
 
         std::uint64_t total_symbol;
-        darray<std::uint64_t> stat;
+        darray <std::uint64_t> stat;
         bool has_stat;
         bool has_output_header;
         bool encode_deci;
 
     public:
 
-            ConditionalFibonacciEncode(Device& device, u_int8_t output_width);
+        ConditionalFibonacciEncode(Device& device, u_int8_t output_width);
 
         StreamStatus receive() final;
     };
 
     template<typename Device>
     ConditionalFibonacciEncode<Device>
-            ::ConditionalFibonacciEncode(Device& device, u_int8_t output_width):
+    ::ConditionalFibonacciEncode(Device& device, u_int8_t output_width):
             FibonacciEncode<Device>(device, output_width),
             total_symbol(1U << device.output_width),
             stat(total_symbol),
@@ -104,7 +104,7 @@ namespace cpparmc::stream {
 
 #ifdef CPPARMC_DEBUG_FIBONACCI_ENCODE
             spdlog::info("The stream has length=[{:d}] bit and fibonacci=[{:d}] bit. ",
-                    count, length);
+                         count, length);
 
             for (auto i = 0; i < total_symbol; i++) {
                 printf("%lu   ", stat[i]);
@@ -120,15 +120,15 @@ namespace cpparmc::stream {
 
         if (!has_output_header) {
             has_output_header = true;
-            return { this->output_width, encode_deci ? 0b00001111 : 0b11110000 };
+            return {this->output_width, encode_deci ? 0b00001111 : 0b11110000};
         }
 
         if (encode_deci) {
-            return { this->output_width, FibonacciEncode<Device>::get() };
+            return {this->output_width, FibonacciEncode<Device>::get()};
         } else {
             this->ch = this->device.get();
             if (this->device.eof()) this->_eof = true;
-            return { this->output_width, this->ch };
+            return {this->output_width, this->ch};
         }
     }
 }

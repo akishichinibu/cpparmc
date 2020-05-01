@@ -9,11 +9,11 @@ namespace cpparmc::utils {
 
     template<typename ValueType=std::uint64_t, typename IndexType=std::uint64_t>
     class ASumTree {
-        u_char nums_level;
+        std::uint8_t nums_level;
         IndexType length;
 
-        darray<ValueType> index;
-        darray<ValueType> data;
+        darray <ValueType> index;
+        darray <ValueType> data;
 
         constexpr ValueType low_bit(IndexType nums);
 

@@ -15,8 +15,8 @@ namespace cpparmc {
 
         std::string fn;
 
-        armc_params params{};
-        armc_coder_params coder_params{};
+        armc_params params {};
+        armc_coder_params coder_params {};
 
         std::uint64_t total_symbol = 0;
 
