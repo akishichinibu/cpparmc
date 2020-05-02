@@ -17,7 +17,7 @@ namespace cpparmc::stream {
         std::uint8_t input_width;
         std::uint8_t output_width;
 
-        BaseStream(void* _device, u_char input_width, u_char output_width):
+        BaseStream(void* _device, std::uint8_t input_width, std::uint8_t output_width):
                 _i_device_(_device),
                 input_width(input_width),
                 output_width(output_width) {};
@@ -40,16 +40,19 @@ namespace cpparmc::stream {
         bool _eof;
         std::uint64_t output_count;
 
+        std::uint64_t _symbol_limit;
+
     public:
         InputDevice& device;
 
-        InputStream(InputDevice& device, u_char input_width, u_char output_width):
+        InputStream(InputDevice& device, std::uint8_t input_width, std::uint8_t output_width):
                 BaseStream(nullptr, input_width, output_width),
                 _i_ch_(0),
                 _i_buffer_(0),
                 _i_buffer_size_(0),
                 _eof(false),
                 output_count(0),
+                _symbol_limit(1U << output_width),
                 device(device) {
             this->_i_device_ = &this->device;
         };
@@ -61,18 +64,19 @@ namespace cpparmc::stream {
         };
 
         std::int64_t get() final {
-            int size;
-            std::uint64_t buf;
 
             while (_i_buffer_size_ < output_width) {
-                assert((0 <= _i_buffer_size_) && (_i_buffer_size_ < 64));
+                std::int16_t size;
+                std::uint64_t buf;
                 std::tie(size, buf) = this->receive();
-                assert(size < 64);
+                assert((size < 0) || ((size < 64) && (0U <= buf) && (buf < (1U << size))));
+
                 if (size < 0) break;
 
                 bits::concat_bits(_i_buffer_, buf, size);
                 _i_buffer_size_ += size;
                 assert((0 <= _i_buffer_size_) && (_i_buffer_size_ < 64));
+                assert((0 <= _i_buffer_) && (_i_buffer_ < (1U << _i_buffer_size_)));
             }
 
             if (_i_buffer_size_ == 0) {
@@ -81,11 +85,14 @@ namespace cpparmc::stream {
             }
 
             const auto _o_size = _i_buffer_size_;
+            const auto _o_buffer = _i_buffer_;
 
             std::tie(_i_ch_, _i_buffer_size_) =
                     bits::pop_bits(_i_buffer_, _i_buffer_size_, this->output_width);
             assert((0 <= _i_buffer_size_) && (_i_buffer_size_ < 64));
             output_count += 1;
+
+            assert((0 <= _i_ch_) && (_i_ch_ < _symbol_limit));
             return _i_ch_;
         }
 

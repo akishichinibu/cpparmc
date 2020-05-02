@@ -7,7 +7,7 @@ namespace cpparmc {
     namespace setting {
 
         struct armc_params {
-            u_char symbol_bit;
+            std::uint8_t symbol_bit;
         };
 
         struct armc_coder_params {

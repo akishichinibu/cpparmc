@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <spdlog/spdlog.h>
 
-constexpr static u_char magic_1 = '\x12';
-constexpr static u_char magic_2 = '\x46';
+constexpr static std::uint8_t magic_1 = '\x12';
+constexpr static std::uint8_t magic_2 = '\x46';
 
 //#define CPPARMC_DEBUG_BIT_STREAM
 //#define CPPARMC_DEBUG_PRINT_MODEL

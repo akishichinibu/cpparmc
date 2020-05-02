@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <sstream>
+#include <vector>
+#include <string_view>
 #include <ctime>
 #include <CRC.h>
 
@@ -39,9 +41,9 @@ namespace cpparmc {
             //+=================+=================+=================+=================+
             //|                              ...pkg_n...                              |
             //+=================+=================+=================+=================+
-            OutputFileDevice output_stream;
+            OutputFileDevice<> output_stream;
 
-            void write_package(std::uint64_t uncompress_length, std::basic_string<std::uint8_t>&& s);
+            void write_package(std::uint64_t uncompress_length, std::vector<std::uint8_t>&& s);
 
         public:
             ARMCFileWriter(const std::string& fn,
@@ -57,21 +59,23 @@ namespace cpparmc {
             void close() final;
         };
 
-        void ARMCFileWriter::write_package(std::uint64_t uncompress_length, std::basic_string<std::uint8_t>&& s) {
+        void ARMCFileWriter::write_package(std::uint64_t uncompress_length, std::vector<std::uint8_t>&& s) {
 
             ARMCPackageHeader package_header {
                     sizeof(ARMCPackageHeader) + s.size(),
                     this->params.symbol_bit,
                     uncompress_length,
-                    CRC::Calculate(s.c_str(), s.size(), CRC::CRC_32()),
+                    CRC::Calculate(s.data(), s.size(), CRC::CRC_32()),
             };
 
             spdlog::info("Write a package with package=[{:d}] body=[{:d}] uncompress=[{:d}]. ",
                          package_header.package_length, s.size(), uncompress_length);
 
-            output_stream
-                    .write(package_header)
-                    .write(s.c_str(), s.size());
+            output_stream.write(&package_header.package_length);
+            output_stream.write(&package_header.symbol_bit);
+            output_stream.write(&package_header.uncompress_length);
+            output_stream.write(&package_header.pkg_crc);
+            output_stream.write(s.data(), s.size());
         }
 
         ARMCFileWriter::ARMCFileWriter(const std::string& fn,
@@ -106,7 +110,13 @@ namespace cpparmc {
                                    CRC::CRC_32()),
             };
 
-            output_stream.write(file_header);
+            output_stream.write(&file_header._magic_1);
+            output_stream.write(&file_header._magic_2);
+            output_stream.write(&file_header.ver_algo);
+            output_stream.write(&file_header.platform);
+            output_stream.write(&file_header.flag);
+            output_stream.write(&file_header.mtime);
+            output_stream.write(&file_header.header_crc);
             this->output_stream.flush();
         }
 
@@ -123,18 +133,21 @@ namespace cpparmc {
                     this->coder_params.pkg_size
             };
 
-            std::basic_stringstream<std::uint8_t> pkg_buffer;
+            std::vector<std::uint8_t> pkg_buffer;
+            pkg_buffer.reserve(this->coder_params.pkg_size);
 
             while (true) {
                 const auto ch = s2.get();
                 if (s2.eof()) break;
-                pkg_buffer.put(ch);
+                pkg_buffer.push_back(ch);
             }
 
-            this->write_package(s2.input_count, std::move(pkg_buffer.str()));
+            this->write_package(s2.input_count, std::move(pkg_buffer));
         }
 
-        void ARMCFileWriter::close() {}
+        void ARMCFileWriter::close() {
+            this->output_stream.flush();
+        }
     }
 }
 

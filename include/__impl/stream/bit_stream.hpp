@@ -19,13 +19,13 @@ namespace cpparmc::stream {
         std::int64_t ch;
 
     public:
-        BitStream(Device& device, u_char output_width);
+        BitStream(Device& device, std::uint8_t output_width);
 
         StreamStatus receive() final;
     };
 
     template<typename Device>
-    BitStream<Device>::BitStream(Device& device, u_char output_width) :
+    BitStream<Device>::BitStream(Device& device, std::uint8_t output_width) :
             InputStream<Device>(device, device.output_width, output_width),
             ch(0) {};
 

@@ -32,7 +32,7 @@ namespace cpparmc {
 
             InputFileDevice<> input_stream;
 
-            std::pair<std::uint8_t, std::uint64_t> read_package_head();
+            void read_package_head();
 
             ARMCFileHeader file_header {};
             ARMCPackageHeader package_header {};
@@ -42,12 +42,12 @@ namespace cpparmc {
 
             ARMCFileReader& open();
 
-            std::basic_string<u_char> read();
+            std::basic_string<std::uint8_t> read();
 
             void close() final;
         };
 
-        std::pair<std::uint8_t, std::uint64_t> ARMCFileReader::read_package_head() {
+        void ARMCFileReader::read_package_head() {
             this->input_stream.read(package_header.package_length);
             this->input_stream.read(package_header.symbol_bit);
             this->input_stream.read(package_header.uncompress_length);
@@ -111,7 +111,7 @@ namespace cpparmc {
                     package_header.symbol_bit,
             };
 
-            std::basic_stringstream<u_char> output_stream;
+            std::basic_stringstream<std::uint8_t> output_stream;
 
             while (true) {
                 const auto c = s2.get();

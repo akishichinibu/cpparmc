@@ -18,7 +18,7 @@ namespace cpparmc::utils {
         constexpr ValueType low_bit(IndexType nums);
 
     public:
-        ASumTree(u_char nums_level);
+        ASumTree(std::uint8_t nums_level);
 
         void add(IndexType i, ValueType val);
 
@@ -35,7 +35,7 @@ namespace cpparmc::utils {
     };
 
     template<typename ValueType, typename IndexType>
-    ASumTree<ValueType, IndexType>::ASumTree(u_char nums_level):
+    ASumTree<ValueType, IndexType>::ASumTree(std::uint8_t nums_level):
             nums_level(nums_level),
             length(1U << nums_level),
             data(darray<ValueType>(length, 0)),

@@ -21,8 +21,6 @@ namespace cpparmc::stream {
 
         void check() const;
 
-        void flush() const;
-
         ~FileDeviceBase();
     };
 
@@ -38,13 +36,7 @@ namespace cpparmc::stream {
         FileDeviceBase::check(std::ferror(file));
     }
 
-    void FileDeviceBase::flush() const {
-        std::fflush(this->file);
-        this->check();
-    }
-
     FileDeviceBase::~FileDeviceBase() {
-        this->flush();
         std::fclose(file);
         this->file = nullptr;
     }

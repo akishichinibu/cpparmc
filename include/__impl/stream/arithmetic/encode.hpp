@@ -26,8 +26,8 @@ namespace cpparmc::stream {
 
         SymbolType ch = 0;
 
-        std::uint64_t bit_buffer = 0U;
-        int bit_buffer_length = 0;
+        std::uint64_t bit_buffer;
+        int bit_buffer_length;
 
         bool clean_up_follow;
         bool follow_bit;
@@ -45,9 +45,12 @@ namespace cpparmc::stream {
     ::ArithmeticEncode(Device& device, std::uint8_t symbol_bit, CounterType block_size):
             InputStream<Device>(device, device.output_width, 8),
             CodecMixin<SymbolType, CounterType, counter_bit>(symbol_bit, block_size),
-            input_count(0),
+            ch(0),
+            bit_buffer_length(0),
+            bit_buffer(0),
             clean_up_follow(false),
-            follow_bit(false) {}
+            follow_bit(false),
+            input_count(0) {}
 
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     auto ArithmeticEncode<Device, SymbolType, CounterType, counter_bit>
@@ -55,10 +58,10 @@ namespace cpparmc::stream {
         if (clean_up_follow) {
             if (this->follow >= this->output_width) {
                 this->follow -= this->output_width;
-                return { this->output_width, bits::get_n_repeat_bit(follow_bit, this->output_width) };
+                return {this->output_width, bits::get_n_repeat_bit(follow_bit, this->output_width)};
             } else {
                 clean_up_follow = false;
-                return { this->follow, bits::get_n_repeat_bit(follow_bit, this->follow) };
+                return {this->follow, bits::get_n_repeat_bit(follow_bit, this->follow)};
             }
         }
 
@@ -73,6 +76,7 @@ namespace cpparmc::stream {
 
             const StreamStatus r = { bit_buffer_length, bit_buffer };
             bit_buffer_length = 0;
+            bit_buffer = 0;
             return r;
         }
 
@@ -131,11 +135,6 @@ namespace cpparmc::stream {
 
                 clean_up_follow = true;
                 follow_bit = !output_bit;
-//
-//                bits::concat_bits(bit_buffer, bits::get_n_repeat_bit(!output_bit, this->follow), this->follow);
-//                bit_buffer_length += this->follow;
-//                assert(bit_buffer_length < 64);
-//                this->follow = 0;
 
             } else if ((this->cl <= this->L) && (this->R < this->cr)) {
                 this->follow += 1;
@@ -168,9 +167,11 @@ namespace cpparmc::stream {
 #endif
 
         this->update_model(ch);
-        const auto temp = bit_buffer_length;
+        assert((0 <= bit_buffer) && (bit_buffer < (1U << bit_buffer_length)));
+        const StreamStatus r = {bit_buffer_length, bit_buffer};
         bit_buffer_length = 0;
-        return {temp, bit_buffer};
+        bit_buffer = 0;
+        return r;
     }
 }
 

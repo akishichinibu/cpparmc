@@ -35,7 +35,7 @@ namespace cpparmc::bits {
             return {buf, 0U};
         } else {
             const auto rest_width = width - head;
-            const T buf = origin >> rest_width;
+            const T buf = (origin >> rest_width) & get_n_repeat_bit(true, head);
             origin &= get_n_repeat_bit(true, rest_width);
             return {buf, rest_width};
         }

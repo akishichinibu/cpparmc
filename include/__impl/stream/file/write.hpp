@@ -8,34 +8,80 @@
 
 namespace cpparmc::stream {
 
+    template<std::uint64_t max_buffer_size = 64 * 1024>
     class OutputFileDevice: public FileDeviceBase {
 
+        char buffer[max_buffer_size]{};
+        std::int64_t cursor;
+        std::int64_t count;
+
     public:
-        u_char output_width = 8;
+        std::uint8_t output_width = 8;
 
         explicit OutputFileDevice(const std::string& fn):
-                FileDeviceBase(fn) {
+        FileDeviceBase(fn),
+        cursor(0),
+        count(0) {
             this->open("wb");
+            std::setvbuf(this->file, nullptr, _IOFBF, max_buffer_size);
         }
 
-        [[nodiscard]] OutputFileDevice& put(u_char c) {
-            std::putc(c, this->file);
-            this->check();
-            return *this;
-        }
-
-        template<typename T>
-        OutputFileDevice& write(T* val, std::size_t n) {
-            std::fwrite(val, sizeof(T), n, this->file);
-            this->check();
-            return *this;
+        void put(std::uint8_t c) {
+            if (cursor == max_buffer_size) this->flush();
+            buffer[cursor] = c;
+            cursor += 1;
+            count += 1;
         }
 
         template<typename T>
-        OutputFileDevice& write(T& val) {
-            std::fwrite(&val, sizeof(T), 1, this->file);
-            this->check();
-            return *this;
+        void write(T* val, std::size_t n) {
+            std::size_t len = n * sizeof(T);
+
+            const auto rest = max_buffer_size - cursor;
+
+            if (len < rest) {
+                std::copy(val, val + len, buffer + cursor);
+                cursor += len;
+                count += len;
+                return;
+            }
+
+            std::size_t head = 0;
+
+            std::copy(val + head, val + rest, buffer + cursor);
+            cursor += rest;
+            count += rest;
+            head += rest;
+            this->flush();
+
+            while (head < len) {
+                const auto part = std::min(len - head, max_buffer_size);
+                std::copy(val + head, val + head + part, buffer + cursor);
+                assert((0 <= cursor) && (cursor < max_buffer_size));
+                cursor += part;
+                count += part;
+                head += part;
+                this->flush();
+            }
+        }
+
+        template<typename T>
+        void write(T* val) {
+            this->write(val, 1);
+        }
+
+        void flush() {
+            if (cursor > 0) {
+                std::fwrite(buffer, sizeof(char), cursor, this->file);
+                this->check();
+                std::fflush(this->file);
+                this->check();
+                cursor = 0;
+            }
+        }
+
+        ~OutputFileDevice() {
+            this->flush();
         }
     };
 }

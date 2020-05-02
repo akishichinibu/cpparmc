@@ -6,7 +6,7 @@ namespace cf = cpparmc::file;
 
 int main() {
     cpparmc::armc_params _compress_params = {
-            16,
+            8,
     };
     cpparmc::armc_coder_params _common_params = {
             64 * 1024,
@@ -22,7 +22,7 @@ int main() {
     std::filesystem::path out_fn(fn);
     out_fn.replace_extension(fn.extension().string() + ".armc");
 
-    cf::ARMCFileWriter armc_file(out_fn, _compress_params, _common_params);
+    cf::ARMCFileWriter armc_file(out_fn.string(), _compress_params, _common_params);
 
     armc_file.open();
     START_TIMER(WRITE_ARMC_FILE);

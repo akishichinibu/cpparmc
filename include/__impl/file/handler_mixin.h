@@ -27,12 +27,12 @@ namespace cpparmc {
         ARMCFileMixin(const std::string& fn);
 
         struct ARMCFileHeader {
-            u_int8_t _magic_1, _magic_2;
-            u_int8_t ver_algo;
-            u_int8_t platform;
-            u_int8_t flag;
-            u_int64_t mtime;
-            u_int32_t header_crc;
+            std::uint8_t _magic_1, _magic_2;
+            std::uint8_t ver_algo;
+            std::uint8_t platform;
+            std::uint8_t flag;
+            std::uint64_t mtime;
+            std::uint32_t header_crc;
         };
 
         struct ARMCPackageHeader {

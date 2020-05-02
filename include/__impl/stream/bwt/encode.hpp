@@ -15,9 +15,9 @@ namespace cpparmc::stream {
 
     using namespace utils;
 
-    template<typename Device, typename SymbolType=u_char, typename SizeType=std::uint32_t>
+    template<typename Device, typename SymbolType=std::uint8_t, typename SizeType=std::uint32_t>
     class BWTEncode: public InputStream<Device> {
-        constexpr static u_char m_width = std::numeric_limits<SizeType>::digits;
+        constexpr static std::uint8_t m_width = std::numeric_limits<SizeType>::digits;
 
         SizeType buffer_size;
         SizeType block_size;
