@@ -39,7 +39,6 @@ namespace cpparmc::stream {
         int _i_buffer_size_;
         bool _eof;
         std::uint64_t output_count;
-
         std::uint64_t _symbol_limit;
 
     public:
@@ -103,7 +102,7 @@ namespace cpparmc::stream {
 
             int i;
             for (i = 0; i < bit_size / this->output_width; i++) {
-                const auto ch = this->get();
+                const std::uint64_t ch = this->get();
                 if (this->eof()) break;
                 bits::concat_bits(buf, ch, this->input_width);
             }

@@ -33,41 +33,18 @@ namespace cpparmc::stream {
             count += 1;
         }
 
-        template<typename T>
-        void write(T* val, std::size_t n) {
-            std::size_t len = n * sizeof(T);
-
+        template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
+        void write(T val) {
+            std::size_t len = sizeof(T);
             const auto rest = max_buffer_size - cursor;
+            if (len > rest) this->flush();
 
-            if (len < rest) {
-                std::copy(val, val + len, buffer + cursor);
-                cursor += len;
-                count += len;
-                return;
+            auto bit_len = len << 3U;
+            while (bit_len > 0U) {
+                std::tie(buffer[cursor], bit_len) = bits::pop_bits(val, bit_len, sizeof(char) << 3U);
+                cursor += 1;
+                count += 1;
             }
-
-            std::size_t head = 0;
-
-            std::copy(val + head, val + rest, buffer + cursor);
-            cursor += rest;
-            count += rest;
-            head += rest;
-            this->flush();
-
-            while (head < len) {
-                const auto part = std::min(len - head, max_buffer_size);
-                std::copy(val + head, val + head + part, buffer + cursor);
-                assert((0 <= cursor) && (cursor < max_buffer_size));
-                cursor += part;
-                count += part;
-                head += part;
-                this->flush();
-            }
-        }
-
-        template<typename T>
-        void write(T* val) {
-            this->write(val, 1);
         }
 
         void flush() {

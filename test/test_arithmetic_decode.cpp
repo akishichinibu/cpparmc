@@ -24,7 +24,6 @@ int main() {
     armc_file.close();
 
     cpparmc::OutputFileDevice outf(out_fn);
-    outf.write(buf.c_str(), buf.size());
-
+    std::for_each(buf.begin(), buf.end(), [&](auto r) { outf.put(r); });
     return 0;
 }

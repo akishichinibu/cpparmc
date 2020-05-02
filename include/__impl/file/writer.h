@@ -71,11 +71,12 @@ namespace cpparmc {
             spdlog::info("Write a package with package=[{:d}] body=[{:d}] uncompress=[{:d}]. ",
                          package_header.package_length, s.size(), uncompress_length);
 
-            output_stream.write(&package_header.package_length);
-            output_stream.write(&package_header.symbol_bit);
-            output_stream.write(&package_header.uncompress_length);
-            output_stream.write(&package_header.pkg_crc);
-            output_stream.write(s.data(), s.size());
+            output_stream.write(package_header.package_length);
+            output_stream.write(package_header.symbol_bit);
+            output_stream.write(package_header.uncompress_length);
+            output_stream.write(package_header.pkg_crc);
+            output_stream.flush();
+            std::for_each(s.cbegin(), s.cend(), [&](auto r) { output_stream.put(r); });
         }
 
         ARMCFileWriter::ARMCFileWriter(const std::string& fn,
@@ -104,20 +105,20 @@ namespace cpparmc {
                     0b01001001,
                     0b10101111,
                     0b011110001,
-                    static_cast<std::uint64_t>(std::time(nullptr)),
+                    1588413824UL,
                     CRC::Calculate(&file_header,
                                    sizeof(ARMCFileHeader) - sizeof(ARMCFileHeader::header_crc),
                                    CRC::CRC_32()),
             };
 
-            output_stream.write(&file_header._magic_1);
-            output_stream.write(&file_header._magic_2);
-            output_stream.write(&file_header.ver_algo);
-            output_stream.write(&file_header.platform);
-            output_stream.write(&file_header.flag);
-            output_stream.write(&file_header.mtime);
-            output_stream.write(&file_header.header_crc);
-            this->output_stream.flush();
+            output_stream.write(file_header._magic_1);
+            output_stream.write(file_header._magic_2);
+            output_stream.write(file_header.ver_algo);
+            output_stream.write(file_header.platform);
+            output_stream.write(file_header.flag);
+            output_stream.write(file_header.mtime);
+            output_stream.write(file_header.header_crc);
+            output_stream.flush();
         }
 
         void ARMCFileWriter::write(InputFileDevice<>& s) {

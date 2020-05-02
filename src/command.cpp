@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
 
     auto cmd_decompress = app.add_subcommand("d", "Decompress a file. ");
     cmd_decompress
-            ->add_option("-f,--file", inp_fn, "The input file path. ")
+            ->add_option("-i,--input", inp_fn, "The input file path. ")
             ->check(CLI::Validator(CLI::ExistingFile).application_index(0));
 
     cmd_decompress
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
         armc_file.close();
 
         cpparmc::OutputFileDevice outf(_out_path.string());
-        outf.write(buf.c_str(), buf.size());
+        std::for_each(buf.begin(), buf.end(), [&](auto r) { outf.put(r); });
     });
 
     CLI11_PARSE(app, argc, argv);

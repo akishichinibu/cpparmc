@@ -52,8 +52,8 @@ namespace cpparmc {
             this->input_stream.read(package_header.symbol_bit);
             this->input_stream.read(package_header.uncompress_length);
             this->input_stream.read(package_header.pkg_crc);
-            spdlog::info("Read a package with package=[{:d}] uncompress=[{:d}]",
-                         package_header.package_length, package_header.uncompress_length);
+            spdlog::info("Read a package with package=[{:d}] uncompress=[{:d}] symbol_bit=[{:d}]",
+                         package_header.package_length, package_header.uncompress_length, package_header.symbol_bit);
         }
 
         ARMCFileReader::ARMCFileReader(const std::string& fn):

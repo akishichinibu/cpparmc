@@ -56,12 +56,14 @@ namespace cpparmc::stream {
     auto ArithmeticEncode<Device, SymbolType, CounterType, counter_bit>
     ::receive() -> StreamStatus {
         if (clean_up_follow) {
-            if (this->follow >= this->output_width) {
+            if (this->follow > this->output_width) {
                 this->follow -= this->output_width;
                 return {this->output_width, bits::get_n_repeat_bit(follow_bit, this->output_width)};
             } else {
                 clean_up_follow = false;
-                return {this->follow, bits::get_n_repeat_bit(follow_bit, this->follow)};
+                const StreamStatus r = {this->follow, bits::get_n_repeat_bit(follow_bit, this->follow)};
+                this->follow = 0;
+                return r;
             }
         }
 
@@ -71,7 +73,11 @@ namespace cpparmc::stream {
             if (this->follow == 0) return {-1, 0};
 
             this->follow += 1;
-            follow_bit = (this->L >= this->cl);
+            bool output_bit = (this->L >= this->cl);
+            bits::append_bit(bit_buffer, output_bit);
+            bit_buffer_length += 1;
+
+            follow_bit = !output_bit;
             clean_up_follow = true;
 
             const StreamStatus r = { bit_buffer_length, bit_buffer };
@@ -133,8 +139,13 @@ namespace cpparmc::stream {
                         this->L, this->R, this->D, oL, oR, !output_bit, this->follow);
 #endif
 
-                clean_up_follow = true;
-                follow_bit = !output_bit;
+//                clean_up_follow = true;
+//                follow_bit = !output_bit;
+
+                bits::concat_bits(bit_buffer, bits::get_n_repeat_bit(!output_bit, this->follow), this->follow);
+                bit_buffer_length += this->follow;
+                assert(bit_buffer_length < 64);
+                this->follow = 0;
 
             } else if ((this->cl <= this->L) && (this->R < this->cr)) {
                 this->follow += 1;

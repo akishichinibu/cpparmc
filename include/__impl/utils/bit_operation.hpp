@@ -24,7 +24,7 @@ namespace cpparmc::bits {
     }
 
     inline std::uint64_t get_n_repeat_bit(bool bit, std::size_t n) {
-        return bit ? (1U << n) - 1U : 0U;
+        return bit ? (1UL << n) - 1UL : 0U;
     }
 
     template<typename T>
@@ -35,7 +35,8 @@ namespace cpparmc::bits {
             return {buf, 0U};
         } else {
             const auto rest_width = width - head;
-            const T buf = (origin >> rest_width) & get_n_repeat_bit(true, head);
+            const T buf = (origin >> rest_width);
+            const std::uint64_t see = get_n_repeat_bit(true, rest_width);
             origin &= get_n_repeat_bit(true, rest_width);
             return {buf, rest_width};
         }

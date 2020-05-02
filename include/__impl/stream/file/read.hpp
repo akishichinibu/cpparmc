@@ -10,7 +10,7 @@
 
 namespace cpparmc::stream {
 
-    template<std::uint64_t max_buffer_size = 4 * 1024 * 1024>
+    template<std::uint64_t max_buffer_size = 64 * 1024>
     class InputFileDevice: public FileDeviceBase, public InputStream<BaseStream> {
         char buffer[max_buffer_size]{};
         std::uint64_t cursor;
@@ -20,7 +20,7 @@ namespace cpparmc::stream {
     public:
         explicit InputFileDevice(const std::string& fn):
         FileDeviceBase(fn),
-        InputStream<BaseStream>(*this, 0, 8),
+        InputStream<BaseStream>(*this, 8, 8),
         cursor(0),
         buffer_len(0),
         count(0) {
