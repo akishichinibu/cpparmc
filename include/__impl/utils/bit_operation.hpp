@@ -18,27 +18,26 @@ namespace cpparmc::bits {
         origin = (origin << 1U) | bit;
     }
 
-    template<typename T, typename R>
-    inline void concat_bits(T& origin, R val, std::size_t width) {
-        origin = (origin << width) | val;
-    }
-
     inline std::uint64_t get_n_repeat_bit(bool bit, std::size_t n) {
         return bit ? (1UL << n) - 1UL : 0U;
+    }
+
+    template<typename T, typename R>
+    inline void concat_bits(T& origin, R val, std::size_t width) {
+        origin = (origin << width) | (val & get_n_repeat_bit(true, width));
     }
 
     template<typename T>
     inline std::pair<T, std::size_t> pop_bits(T& origin, std::size_t width, std::size_t head) {
         if (width <= head) {
-            const T buf = origin;
+            const T buf = (origin & get_n_repeat_bit(true, head)) << (head - width);
             origin = 0U;
-            return {buf, 0U};
+            return { buf, 0U };
         } else {
             const auto rest_width = width - head;
-            const T buf = (origin >> rest_width);
-            const std::uint64_t see = get_n_repeat_bit(true, rest_width);
+            const T buf = (origin >> rest_width) & get_n_repeat_bit(true, head);
             origin &= get_n_repeat_bit(true, rest_width);
-            return {buf, rest_width};
+            return { buf, rest_width };
         }
     }
 }

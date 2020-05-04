@@ -10,41 +10,42 @@
 
 namespace cpparmc::stream {
 
-    template<std::uint64_t max_buffer_size = 64 * 1024>
-    class InputFileDevice: public FileDeviceBase, public InputStream<BaseStream> {
+    template<std::size_t max_buffer_size = 64 * 1024>
+    class InputFileDevice: public FileDeviceBase, public Stream<BaseStream> {
+
         char buffer[max_buffer_size]{};
-        std::uint64_t cursor;
-        std::uint64_t buffer_len;
-        std::uint64_t count;
+        std::size_t cursor;
+        std::size_t buffer_len;
+        std::size_t count;
 
     public:
         explicit InputFileDevice(const std::string& fn):
-        FileDeviceBase(fn),
-        InputStream<BaseStream>(*this, 8, 8),
-        cursor(0),
-        buffer_len(0),
-        count(0) {
+                FileDeviceBase(fn),
+                Stream<BaseStream>(*this, 8, 8),
+                cursor(0),
+                buffer_len(0),
+                count(0) {
             this->open("rb");
             std::setvbuf(this->file, nullptr, _IONBF, max_buffer_size);
         }
 
         [[nodiscard]] auto receive() -> StreamStatus final {
+            DEBUG_PRINT("FILE!!! {:d}  {:d}", buffer_len, cursor);
+
             if (cursor == buffer_len) {
                 buffer_len = std::fread(buffer, sizeof(char), max_buffer_size, this->file);
                 cursor = 0;
             }
 
-            if (cursor == buffer_len) {
-                return { -1, 0 };
-            }
+            if (cursor == buffer_len) return { -1, 0 };
 
+            const std::uint8_t ch = buffer[cursor];
             count += 1;
-            const std::uint8_t ch = buffer[cursor++];
-            assert((0 <= ch < 256));
+            cursor += 1;
             return { this->output_width, ch };
         }
 
-        [[nodiscard]] std::uint64_t tell() const {
+        [[nodiscard]] std::size_t tell() const {
             return count;
         }
 
@@ -53,7 +54,7 @@ namespace cpparmc::stream {
             count = 0;
             cursor = 0;
             buffer_len = 0;
-            InputStream<BaseStream>::reset();
+            Stream<BaseStream>::reset();
         }
     };
 }

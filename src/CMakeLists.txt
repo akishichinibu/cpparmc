@@ -10,7 +10,7 @@ SET(CMAKE_VERBOSE_MAKEFILE ON)
 
 MESSAGE(CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS})
 
-SET(src ${CMAKE_CURRENT_SOURCE_DIR}/command.cpp)
+SET(src cli.cpp)
 
 GET_FILENAME_COMPONENT(name ${src} NAME_WE)
 MESSAGE("*** Now compile `${name}` for current test file ${src}. ")

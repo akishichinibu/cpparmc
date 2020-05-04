@@ -21,7 +21,7 @@ namespace cpparmc::stream {
             typename CounterType=std::int64_t,
             std::uint8_t counter_bit = default_count_bit>
     class ArithmeticDecode:
-            public InputStream<Device>,
+            public Stream<Device>,
             public CodecMixin<SymbolType, CounterType, counter_bit> {
 
         std::uint64_t uncompressed_length;
@@ -41,7 +41,7 @@ namespace cpparmc::stream {
     ::ArithmeticDecode(Device& device,
                        std::uint64_t uncompressed_length,
                        std::uint8_t symbol_bit):
-            InputStream<Device>(device, 1, 8),
+            Stream<Device>(device, 1, 8),
             CodecMixin<SymbolType, CounterType, counter_bit>(symbol_bit),
             uncompressed_length(uncompressed_length),
             output_count(0),

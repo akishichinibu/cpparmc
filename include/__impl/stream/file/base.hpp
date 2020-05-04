@@ -12,7 +12,7 @@ namespace cpparmc::stream {
 
         static void check(int status) {
             if (status) {
-                throw std::runtime_error(fmt::format("File status error: {:d}", status));
+                throw std::runtime_error("File status error");
             }
         }
 

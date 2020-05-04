@@ -9,8 +9,12 @@
 #include "__impl/stream/file/read.hpp"
 #include "__impl/stream/file/write.hpp"
 
+#include "__impl/stream/stdio/read.hpp"
+
 #include "__impl/stream/arithmetic/encode.hpp"
 #include "__impl/stream/arithmetic/decode.hpp"
+
+#include "__impl/utils/shortcut.hpp"
 
 //#include "__impl/stream/fabonacci/encode.hpp"
 //#include "__impl/stream/fabonacci/decode.hpp"

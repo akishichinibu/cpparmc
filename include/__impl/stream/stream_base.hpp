@@ -5,17 +5,19 @@
 #include "__impl/utils/bit_operation.hpp"
 
 namespace cpparmc::stream {
-
-    typedef std::pair<std::int16_t, std::uint64_t> StreamStatus;
+    typedef std::uint64_t CommonSymbolType;
+    typedef std::pair<std::int16_t, CommonSymbolType> StreamStatus;
 
     class BaseStream {
 
     protected:
-        void* _i_device_;
+        void* _i_device_{};
 
     public:
-        std::uint8_t input_width;
-        std::uint8_t output_width;
+        std::uint8_t input_width{};
+        std::uint8_t output_width{};
+
+        BaseStream() = default;
 
         BaseStream(void* _device, std::uint8_t input_width, std::uint8_t output_width):
                 _i_device_(_device),
@@ -30,21 +32,25 @@ namespace cpparmc::stream {
     };
 
     template<typename InputDevice>
-    class InputStream: public BaseStream {
+    class Stream: public BaseStream {
         static_assert(std::is_base_of_v<BaseStream, InputDevice>);
 
     protected:
-        std::int64_t _i_ch_;
-        std::uint64_t _i_buffer_;
-        int _i_buffer_size_;
-        bool _eof;
-        std::uint64_t output_count;
-        std::uint64_t _symbol_limit;
+        std::int64_t _i_ch_{};
+        std::uint64_t _i_buffer_{};
+        int _i_buffer_size_{};
+        bool _eof{};
+        std::uint64_t output_count{};
+        std::uint64_t _symbol_limit{};
+
+        bool greedy{};
 
     public:
         InputDevice& device;
 
-        InputStream(InputDevice& device, std::uint8_t input_width, std::uint8_t output_width):
+        Stream() = default;
+
+        Stream(InputDevice& device, std::uint8_t input_width, std::uint8_t output_width, bool greedy=true):
                 BaseStream(nullptr, input_width, output_width),
                 _i_ch_(0),
                 _i_buffer_(0),
@@ -52,7 +58,8 @@ namespace cpparmc::stream {
                 _eof(false),
                 output_count(0),
                 _symbol_limit(1U << output_width),
-                device(device) {
+                device(device),
+                greedy(greedy) {
             this->_i_device_ = &this->device;
         };
 
@@ -63,28 +70,28 @@ namespace cpparmc::stream {
         };
 
         std::int64_t get() final {
-
             while (_i_buffer_size_ < output_width) {
                 std::int16_t size;
                 std::uint64_t buf;
                 std::tie(size, buf) = this->receive();
-                assert((size < 0) || ((size < 64) && (0U <= buf) && (buf < (1U << size))));
+                assert((size < 0) || ((size < 64) && (0LU <= buf)));
+//                DEBUG_PRINT("width: {:d}~{:d} size: {:d} buffer: {:d} buf=[{:B}] buf=[{:B}]", this->input_width, this->output_width, size, _i_buffer_size_, buf, _i_buffer_);
+                if (size < 0) {
+//                    DEBUG_PRINT("EOF@!@ width: {:d}~{:d} size: {:d} buffer: {:d} buf=[{:B}] buf=[{:B}]", this->input_width, this->output_width, size, _i_buffer_size_, buf, _i_buffer_);
 
-                if (size < 0) break;
+                    if ((!greedy) && (_i_buffer_size_ < this->input_width)) _i_buffer_size_ = 0;
+                    break;
+                }
 
                 bits::concat_bits(_i_buffer_, buf, size);
                 _i_buffer_size_ += size;
                 assert((0 <= _i_buffer_size_) && (_i_buffer_size_ < 64));
-                assert((0 <= _i_buffer_) && (_i_buffer_ < (1U << _i_buffer_size_)));
             }
 
             if (_i_buffer_size_ == 0) {
                 this->_eof = true;
                 return EOF;
             }
-
-            const auto _o_size = _i_buffer_size_;
-            const auto _o_buffer = _i_buffer_;
 
             std::tie(_i_ch_, _i_buffer_size_) =
                     bits::pop_bits(_i_buffer_, _i_buffer_size_, this->output_width);

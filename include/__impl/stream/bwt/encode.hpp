@@ -3,9 +3,10 @@
 
 #include <numeric>
 #include <execution>
-#include <map>
+#include <vector>
 
 #include "__impl/compile_base.h"
+#include "__impl/logger.hpp"
 #include "__impl/stream/stream_base.hpp"
 #include "__impl/utils/timer.hpp"
 #include "__impl/utils/darray.hpp"
@@ -15,137 +16,126 @@ namespace cpparmc::stream {
 
     using namespace utils;
 
-    template<typename Device, typename SymbolType=std::uint8_t, typename SizeType=std::uint32_t>
-    class BWTEncode: public InputStream<Device> {
-        constexpr static std::uint8_t m_width = std::numeric_limits<SizeType>::digits;
+    template<typename Device,
+            std::size_t init_buffer_size=4 * 1024 * 1024,
+            typename SizeType=std::uint32_t>
+    class BWTEncode: public Stream<Device> {
+        std::uint8_t symbol_bits;
+        std::uint64_t total_symbol;
+        BitStream<Device> bit_adaptor;
 
-        SizeType buffer_size;
-        SizeType block_size;
-
-        darray <SymbolType> buffer;
-        darray <SymbolType> bwt_buffer;
-        darray <SizeType> bwt_index;
-        std::map<std::pair<SizeType, SizeType>, bool> cmp_cache;
-
-        SizeType pos;
-        SizeType m0;
+        SizeType buffer_pos;
+        std::vector<CommonSymbolType> buffer;
+        std::vector<CommonSymbolType> bwt_buffer;
+        std::vector<SizeType> bwt_index;
 
     public:
-        BWTEncode(Device& device, SizeType block_size);
-
+        BWTEncode(Device& device, std::uint8_t symbol_bits);
         StreamStatus receive() final;
     };
 
-    template<typename Device, typename SymbolType, typename SizeType>
-    BWTEncode<Device, SymbolType, SizeType>::BWTEncode(Device& device, SizeType block_size):
-            InputStream<Device>(device, device.output_width, device.output_width),
-            buffer_size(0),
-            block_size(block_size),
-            buffer(block_size),
-            bwt_buffer(block_size),
-            bwt_index(block_size),
-            pos(0),
-            m0(block_size) {}
+    template<typename Device, std::size_t init_buffer_size, typename SizeType>
+    BWTEncode<Device, init_buffer_size, SizeType>
+    ::BWTEncode(Device& device, std::uint8_t symbol_bits):
+            Stream<Device>(device, 8, 8, true),
+            symbol_bits(symbol_bits),
+            total_symbol(1U << symbol_bits),
+            bit_adaptor(BitStream<Device>(device, symbol_bits, true)),
+            buffer_pos(0) {
+                buffer.reserve(init_buffer_size);
+            }
 
-    template<typename Device, typename SymbolType, typename SizeType>
-    auto BWTEncode<Device, SymbolType, SizeType>::receive() -> StreamStatus {
+    template<typename Device, std::size_t init_buffer_size, typename SizeType>
+    auto BWTEncode<Device, init_buffer_size, SizeType>::receive() -> StreamStatus {
+        if (buffer_pos < buffer.size()) return { symbol_bits, buffer.at(buffer_pos++) };
 
-        while (pos < buffer_size) {
-            return {this->output_width, buffer.at(pos++)};
-        }
+        buffer.clear();
 
-        for (buffer_size = 0; buffer_size < block_size; buffer_size++) {
-            const auto ch = this->device.get();
+        while (true) {
+            const CommonSymbolType ch = this->bit_adaptor.get();
             if (this->device.eof()) break;
-            buffer[buffer_size] = ch;
+            buffer.push_back(ch);
         }
 
-        if (buffer_size == 0) return {-1, 0};
+        if (buffer.empty()) return {-1, 0};
 
-#ifdef CPPARMC_DEBUG_BWT_ENCODER
-        spdlog::info("Read a block with size: [{:d}]. ", buffer_size);
-#endif
+        const auto buffer_size = buffer.size();
+        DEBUG_PRINT("read a block with size: [{:d}]. ", buffer_size);
+
+        auto cycle_index = [=](auto r, auto offset) { return r >= offset ? r - offset : r + buffer_size - offset; };
+
+        bwt_index.reserve(buffer_size);
+        bwt_index.resize(buffer_size);
+        std::iota(bwt_index.begin(), bwt_index.end(), 0);
 
 #ifdef CPPARMC_TIMING
         START_TIMER(SORT_BWT_TABLE);
 #endif
 
-        std::iota(bwt_index.begin(), bwt_index.end(buffer_size), 0);
-
-        cmp_cache.clear();
-
         std::sort(
 #ifdef USING_PARALLEL_STL
                 std::execution::par_unseq,
 #endif
-                bwt_index.begin(), bwt_index.end(buffer_size),
+                bwt_index.begin(),
+                bwt_index.end(),
                 [&](auto r1, auto r2) {
-                    const std::pair<SizeType, SizeType> pair {r1, r2};
-                    const auto _p = cmp_cache.find(pair);
-                    if (_p != cmp_cache.end()) return cmp_cache.at(pair);
-
                     for (auto t = 0; t < buffer_size; t++) {
-                        const auto a = buffer[(t - r1) % buffer_size];
-                        const auto b = buffer[(t - r2) % buffer_size];
-                        if (a != b) {
-                            if (t >= (buffer_size >> 1U)) cmp_cache[pair] = a < b;
-                            return a < b;
-                        }
+                        const auto a = buffer[cycle_index(t, r1)];
+                        const auto b = buffer[cycle_index(t, r2)];
+                        if (a != b) { return a < b; }
                     }
-                    cmp_cache[pair] = true;
                     return true;
                 });
+
+#ifdef CPPARMC_TIMING
+        END_TIMER_AND_OUTPUT_MS(SORT_BWT_TABLE);
+#endif
 
         const auto _p = std::find(
 #ifdef USING_PARALLEL_STL
                 std::execution::par_unseq,
 #endif
                 bwt_index.begin(),
-                bwt_index.end(buffer_size), 0);
+                bwt_index.end(),
+                0);
 
-        m0 = std::distance(bwt_index.begin(), _p);
+        assert(_p != bwt_index.end());
+        std::uint32_t same_row_index = std::distance(bwt_index.begin(), _p);
 
-        assert(m0 != buffer_size);
+        DEBUG_PRINT("The m0 of bwt is [{:d}]. ", same_row_index);
 
-#ifdef CPPARMC_TIMING
-        END_TIMER_AND_OUTPUT_MS(SORT_BWT_TABLE);
+#ifdef CPPARMC_DEBUG_BWT_ENCODER
+        for (auto i = 0; i < buffer_size; i++) {
+            for (auto j = 0; j < buffer_size; j++) DEBUG_PRINT("%c ", buffer[cycle_index(j, i)]);
+            DEBUG_PRINT("\n");
+        }
 #endif
-
-//#ifdef CPPARMC_DEBUG_BWT_ENCODER
-//        spdlog::info("The m0 of bwt is [{:d}]. ", m0);
-//
-//        for (auto i = 0; i < buffer_size; i++) {
-//            printf("%d: %d, ", i, bwt_index[i]);
-//
-//            if ((i + 1) % 8 == 0) printf("\n");
-//        }
-//        printf("\n");
-//#endif
 
         std::transform(
 #ifdef USING_PARALLEL_STL
                 std::execution::par_unseq,
 #endif
-                bwt_index.begin(), bwt_index.end(buffer_size), bwt_index.begin(),
-                [=](auto r) {
-                    return ((buffer_size - 1) - r) % buffer_size;
-                });
+                bwt_index.begin(),
+                bwt_index.end(),
+                bwt_index.begin(),
+                [=](auto r) { return ((buffer_size - 1) - r) % buffer_size; });
 
+        bwt_buffer.reserve(buffer_size);
+        bwt_buffer.resize(buffer_size);
         for (auto i = 0; i < buffer_size; i++) bwt_buffer[i] = buffer[bwt_index[i]];
 
         std::copy(
 #ifdef USING_PARALLEL_STL
                 std::execution::par_unseq,
 #endif
-                bwt_buffer.begin(), bwt_buffer.end(buffer_size), buffer.begin());
+                bwt_buffer.begin(),
+                bwt_buffer.end(),
+                buffer.begin());
 
-        pos = 0;
+        buffer_pos = 0;
 
-#ifdef CPPARMC_DEBUG_BWT_ENCODER
-        spdlog::info("After read the size of bwtrle buffer: {:d}. ", buffer_size);
-#endif
-
-        return {m_width, m0};
+        same_row_index = same_row_index & (bits::get_n_repeat_bit(true, 24U)) | (symbol_bits << 24U);
+        return { 32U, same_row_index };
     }
 }
 

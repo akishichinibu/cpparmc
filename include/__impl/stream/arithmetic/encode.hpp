@@ -21,7 +21,7 @@ namespace cpparmc::stream {
             typename CounterType=std::uint64_t,
             std::uint8_t counter_bit = default_count_bit>
     class ArithmeticEncode:
-            public InputStream<Device>,
+            public Stream<Device>,
             public CodecMixin<SymbolType, CounterType, counter_bit> {
 
         SymbolType ch = 0;
@@ -43,7 +43,7 @@ namespace cpparmc::stream {
     template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
     ArithmeticEncode<Device, SymbolType, CounterType, counter_bit>
     ::ArithmeticEncode(Device& device, std::uint8_t symbol_bit, CounterType block_size):
-            InputStream<Device>(device, device.output_width, 8),
+            Stream<Device>(device, device.output_width, 8),
             CodecMixin<SymbolType, CounterType, counter_bit>(symbol_bit, block_size),
             ch(0),
             bit_buffer_length(0),
