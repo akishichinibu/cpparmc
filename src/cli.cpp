@@ -27,69 +27,68 @@ int main(int argc, char** argv) {
             ->check(CLI::Validator(CLI::Range(0, 32)));
 
     sc_bwt->callback([&]() {
-
-        cs::StandardIOStream<> inp;
+        cs::StdInputStream<> inp;
 
         if (bwt_is_encode) {
-            cs::BWTEncode<cs::StandardIOStream<>> s1(inp, bwt_symbol_bit);
+            cs::BWTEncode<cs::StdInputStream<>> s1(inp, bwt_symbol_bit);
             cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
         } else {
-            cs::BWTDecode<cs::StandardIOStream<>> s1(inp);
+            cs::BWTDecode<cs::StdInputStream<>> s1(inp);
             cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
         }
     });
 
-    // RLE
-    std::uint64_t rle_counter_bit {4};
-    std::size_t rle_symbol_bit {8};
-
-    bool rle_is_encode = false;
-    auto sc_rle = app.add_subcommand("rle", "The Run-length encoding of the input. ");
-
-    sc_rle->add_flag("-e,!-d,--encode,!--decode", rle_is_encode)->required();
-
-    sc_rle->add_option<std::size_t>("-s,--symbol_bit", rle_symbol_bit, "The symbol bit for RLE. ")
-            ->check(CLI::Validator(CLI::Range(0, 32)));
-
-    sc_rle->add_option<std::uint64_t>("-c,--counter_bit", rle_counter_bit, "The counter bit nums for RLE. ")
-            ->check(CLI::Validator(CLI::Range(0, 64)));
-
-    sc_rle->callback([&]() {
-
-        cs::StandardIOStream<> inp;
-
-        if (rle_is_encode) {
-            cs::RLEEncode<cs::StandardIOStream<>> s1(inp, rle_symbol_bit, rle_counter_bit);
-            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
-        } else {
-            cs::RLEDecode<cs::StandardIOStream<>> s1(inp);
-            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
-        }
-    });
-
-//    // ARMC
-//    std::size_t arith_symbol_bit {8};
-//    bool arith_is_encode = false;
+//    // RLE
+//    std::uint64_t rle_counter_bit {4};
+//    std::size_t rle_symbol_bit {8};
 //
-//    auto sc_arith = app.add_subcommand("ari", "The Arithmetic encoding of the input. ");
+//    bool rle_is_encode = false;
+//    auto sc_rle = app.add_subcommand("rle", "The Run-length encoding of the input. ");
 //
-//    sc_arith->add_flag("-e,!-d,--encode,!--decode", arith_is_encode)->required();
+//    sc_rle->add_flag("-e,!-d,--encode,!--decode", rle_is_encode)->required();
 //
-//    sc_arith->add_option<std::size_t>("-s,--symbol_bit", arith_symbol_bit, "The symbol bit for Arithmetic. ")
+//    sc_rle->add_option<std::size_t>("-s,--symbol_bit", rle_symbol_bit, "The symbol bit for RLE. ")
 //            ->check(CLI::Validator(CLI::Range(0, 32)));
 //
+//    sc_rle->add_option<std::uint64_t>("-c,--counter_bit", rle_counter_bit, "The counter bit nums for RLE. ")
+//            ->check(CLI::Validator(CLI::Range(0, 64)));
 //
-//    sc_arith->callback([&]() {
+//    sc_rle->callback([&]() {
+//
 //        cs::StandardIOStream<> inp;
 //
 //        if (rle_is_encode) {
-//            cs::ArithmeticEncode<cs::StandardIOStream<>> s1(inp, rle_symbol_bit, rle_counter_bit);
+//            cs::RLEEncode<cs::StandardIOStream<>> s1(inp, rle_symbol_bit, rle_counter_bit);
 //            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
 //        } else {
-//            cs::ArithmeticDecode<cs::StandardIOStream<>> s1(inp);
+//            cs::RLEDecode<cs::StandardIOStream<>> s1(inp);
 //            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
 //        }
 //    });
+
+    // ARMC
+    std::size_t arith_symbol_bit {8};
+    bool arith_is_encode = false;
+
+    auto sc_arith = app.add_subcommand("ari", "The Arithmetic encoding of the input. ");
+
+    sc_arith->add_flag("-e,!-d,--encode,!--decode", arith_is_encode)->required();
+
+    sc_arith->add_option<std::size_t>("-s,--symbol_bit", arith_symbol_bit, "The symbol bit for Arithmetic. ")
+            ->check(CLI::Validator(CLI::Range(0, 32)));
+
+    sc_arith->callback([&]() {
+        cs::StdInputStream<> inp;
+
+        if (arith_is_encode) {
+            cs::ArithmeticEncode<cs::StdInputStream<>> s1(inp, arith_symbol_bit);
+            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); }, true);
+        } else {
+            cs::ArithmeticDecode<cs::StdInputStream<>> s1(inp);
+            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); }, true);
+        }
+
+    });
 
     CLI11_PARSE(app, argc, argv);
     return 0;

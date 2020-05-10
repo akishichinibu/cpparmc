@@ -11,8 +11,8 @@ constexpr static std::uint8_t magic_2 = '\x46';
 
 //#define CPPARMC_DEBUG_BIT_STREAM
 //#define CPPARMC_DEBUG_PRINT_MODEL
-//#define CPPARMC_DEBUG_ARITHMETIC_ENCODER
-//#define CPPARMC_DEBUG_ARITHMETIC_DECODER
+#define CPPARMC_DEBUG_ARITHMETIC_ENCODER
+#define CPPARMC_DEBUG_ARITHMETIC_DECODER
 //#define CPPARMC_DEBUG_BWT_ENCODER
 //#define CPPARMC_DEBUG_BWT_DECODER
 #define CPPARMC_TIMING
@@ -23,9 +23,6 @@ constexpr static std::uint8_t magic_2 = '\x46';
 
 #define USING_PARALLEL_STL
 
-#ifdef BWT_MULTI_THREAD
-#include <thread>
-#endif
 
 #define DEBUG
 

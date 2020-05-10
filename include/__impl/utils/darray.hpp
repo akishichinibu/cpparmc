@@ -14,6 +14,8 @@ namespace cpparmc::utils {
         std::size_t size = 0;
 
     public:
+        inline explicit darray(): size(0) {};
+
         inline explicit darray(std::size_t size):
                 size(size), buffer(std::make_unique<T[]>(size)) {}
 

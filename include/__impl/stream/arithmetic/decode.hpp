@@ -1,14 +1,12 @@
 #ifndef CPPARMC_ARITHMETIC_DECODE_HPP
 #define CPPARMC_ARITHMETIC_DECODE_HPP
 
-#include <deque>
 #include <iostream>
 #include <algorithm>
 #include <numeric>
 
-#include "__impl/stream/stream_base.hpp"
-#include "__impl/stream/arithmetic/codec_mixin.hpp"
-
+#include "__impl/stream/arithmetic/mixin.hpp"
+#include "__impl/stream/generator.hpp"
 #include "__impl/utils/bit_operation.hpp"
 
 
@@ -16,55 +14,48 @@ namespace cpparmc::stream {
 
     using namespace setting;
 
-    template<typename Device,
-            typename SymbolType=std::int64_t,
-            typename CounterType=std::int64_t,
-            std::uint8_t counter_bit = default_count_bit>
+    template<typename Source,
+            typename CounterType=std::uint64_t,
+            StreamSizeType counter_bit = default_count_bit>
     class ArithmeticDecode:
-            public Stream<Device>,
-            public CodecMixin<SymbolType, CounterType, counter_bit> {
-
-        std::uint64_t uncompressed_length;
-        std::uint64_t output_count;
+            public Generator<Source>,
+            protected ArithmeticCodecMixin<CounterType, counter_bit> {
         CounterType value;
 
     public:
-        ArithmeticDecode(Device& device,
-                         std::uint64_t uncompressed_length,
-                         std::uint8_t symbol_bit);
+        explicit ArithmeticDecode(Source& src) noexcept;
 
-        StreamStatus receive() final;
+        StreamStatus patch() noexcept final;
     };
 
-    template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
-    ArithmeticDecode<Device, SymbolType, CounterType, counter_bit>
-    ::ArithmeticDecode(Device& device,
-                       std::uint64_t uncompressed_length,
-                       std::uint8_t symbol_bit):
-            Stream<Device>(device, 1, 8),
-            CodecMixin<SymbolType, CounterType, counter_bit>(symbol_bit),
-            uncompressed_length(uncompressed_length),
-            output_count(0),
-            value(0) {
-        if (this->device.output_width != 1) {
-            throw std::runtime_error("Error input length. ");
-        }
+    template<typename Source, typename CounterType, StreamSizeType cb>
+    ArithmeticDecode<Source, CounterType, cb>::ArithmeticDecode(Source& src) noexcept:
+    Generator<Source>(src),
+    ArithmeticCodecMixin<CounterType, cb>([&](){
+        const auto frame = src.next(8);
+        return std::get<1>(frame.value());
+    }()),
+    value([&](){
+        return std::get<1>(src.next(cb, true).value());
+    }()) {
+#ifdef CPPARMC_DEBUG_ARITHMETIC_DECODER
+        DEBUG_PRINT("The symbol bit of arithmetic code is {:d}. value {:d}. ",
+                this->symbol_bit,
+                value);
+#endif
+        assert((this->L <= value) && (value < this->R));
+        CounterType rR = this->model
+                .template find<CounterType>(static_cast<double>(value - this->L) / this->D * this->model.sum());
+        assert(rR != this->model.size());
 
-        for (auto i = 0; i < counter_bit; i++) {
-            bool bit = this->device.get();
-            if (this->device.eof()) bit = false;
-            bits::append_bit(value, bit);
-        }
+        SymbolType symbol = rR;
+        this->send(this->symbol_bit, symbol);
     }
 
-    template<typename Device, typename SymbolType, typename CounterType, std::uint8_t counter_bit>
-    auto ArithmeticDecode<Device, SymbolType, CounterType, counter_bit>
-    ::receive() -> StreamStatus {
-        if (output_count == uncompressed_length) {
-            this->_eof = true;
-            return {-1, 0};
-        }
-
+    template<typename Device, typename CounterType, StreamSizeType cb>
+    auto ArithmeticDecode<Device, CounterType, cb>
+    ::patch() noexcept -> StreamStatus {
+        if (this->src_eof()) return std::nullopt;
         assert((this->L <= value) && (value < this->R));
 
         CounterType rR = this->model
@@ -72,6 +63,7 @@ namespace cpparmc::stream {
         assert(rR != this->model.size());
 
         SymbolType symbol = rR;
+        this->send(this->symbol_bit, symbol);
 
 #ifdef CPPARMC_DEBUG_ARITHMETIC_DECODER
         const auto oL = this->L;
@@ -81,20 +73,23 @@ namespace cpparmc::stream {
         const auto oSum = this->model.sum();
 #endif
 
-        CounterType vL = this->model.asum(rR - 1U);
-        CounterType vR = this->model.asum(rR);
+        CounterType vL = this->model.accumulate_sum(rR - 1U);
+        CounterType vR = this->model.accumulate_sum(rR);
 
         this->R = this->L + static_cast<double>(vR) / this->model.sum() * this->D;
         this->L = this->L + static_cast<double>(vL) / this->model.sum() * this->D;
         this->D = this->R - this->L;
+        this->update_model(symbol);
 
 #ifdef CPPARMC_DEBUG_ARITHMETIC_DECODER
-        spdlog::info("[Output] symbol:[{:10d}] value:[{:10d}][L={:10d} ~ R={:10d}] "
+        DEBUG_PRINT("[Output] symbol:[{:10d}] value:[{:10d}][L={:10d} ~ R={:10d}] "
                      "pos=[*** ~ {:5d}] "
                      "[oL={:10d} ~ oR={:10d}]",
                      symbol, value, this->L, this->R, rR, oL, oR);
 #endif
         assert((this->L < this->R) && (this->R <= this->counter_limit));
+
+
 
         while (true) {
             assert((this->L <= value) && (value < this->R));
@@ -131,19 +126,24 @@ namespace cpparmc::stream {
             assert((this->L < this->R) && (this->R <= this->counter_limit));
             this->D = this->R - this->L;
 
-            bool bit = this->device.get();
-            if (this->device.eof()) bit = false;
+            bool bit = this->src.next();
+
+            if (this->src_eof()) {
+                bit = false;
+            }
+
             bits::append_bit(value, bit);
+
 #ifdef CPPARMC_DEBUG_ARITHMETIC_DECODER
-            spdlog::info("[Rerange] value=[{:d}][L={:d} ~ R={:d}] ov=[{:d}][oL={:d} ~ oR={:d}]",
-                    value, this->L, this->R, ov, oov, ooL, ooR);
+            DEBUG_PRINT("[Rerange] "
+                        "value=[{:d}][L={:d} ~ R={:d}] ov=[{:d}][oL={:d} ~ oR={:d}]",
+                        value, this->L, this->R, ov, oov, ooL, ooR);
 #endif
+
             assert((this->L <= value) && (value < this->R));
         }
 
-        this->update_model(symbol);
-        output_count += 1U;
-        return {this->output_width, symbol};
+        return StreamStatus(std::in_place, 0, 0);
     }
 }
 

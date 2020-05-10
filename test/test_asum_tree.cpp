@@ -2,13 +2,13 @@
 #include <random>
 
 #include "__impl/utils/darray.hpp"
-#include "__impl/utils/asum_tree.hpp"
+#include "__impl/utils/index_tree.hpp"
 
 namespace cu = cpparmc::utils;
 
 TEST(TEST_CPPARMC, test_asum_tree_simple) {
     const auto H = 3U;
-    auto test_tree = cu::ASumTree(H);
+    auto test_tree = cu::IndexTree(H);
 
     test_tree.add(0, 1);
     test_tree.add(1, 1);
@@ -39,7 +39,7 @@ TEST(TEST_CPPARMC, test_asum_tree_compare) {
         auto test_buf = cu::darray<std::uint32_t>(nums, 0);
         auto test_accu = cu::darray<std::uint32_t>(nums, 0);
 
-        auto test_tree = cu::ASumTree<std::uint32_t, std::uint32_t>(H);
+        auto test_tree = cu::IndexTree<std::uint32_t, std::uint32_t>(H);
 
         for (auto i = 0; i < N; i++) {
             const auto t = dis_t(gen);

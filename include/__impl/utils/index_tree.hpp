@@ -1,5 +1,5 @@
-#ifndef CPPARMC_ASUM_TREE_HPP
-#define CPPARMC_ASUM_TREE_HPP
+#ifndef CPPARMC_INDEX_TREE_HPP
+#define CPPARMC_INDEX_TREE_HPP
 
 #include "darray.hpp"
 #include "__impl/utils/bit_operation.hpp"
@@ -8,8 +8,8 @@
 namespace cpparmc::utils {
 
     template<typename ValueType=std::uint64_t, typename IndexType=std::uint64_t>
-    class ASumTree {
-        std::uint8_t nums_level;
+    class IndexTree {
+        std::uint8_t nums_level{};
         IndexType length;
 
         darray <ValueType> index;
@@ -18,7 +18,9 @@ namespace cpparmc::utils {
         constexpr ValueType low_bit(IndexType nums);
 
     public:
-        ASumTree(std::uint8_t nums_level);
+        IndexTree() = default;
+
+        explicit IndexTree(std::uint8_t nums_level);
 
         void add(IndexType i, ValueType val);
 
@@ -28,37 +30,39 @@ namespace cpparmc::utils {
 
         inline ValueType sum();
 
-        ValueType asum(IndexType i);
+        ValueType accumulate_sum(IndexType i);
 
         template<typename W>
         IndexType find(W s);
     };
 
-    template<typename ValueType, typename IndexType>
-    ASumTree<ValueType, IndexType>::ASumTree(std::uint8_t nums_level):
+    template<typename V, typename T>
+    IndexTree<V, T>::IndexTree(std::uint8_t nums_level):
             nums_level(nums_level),
             length(1U << nums_level),
-            data(darray<ValueType>(length, 0)),
-            index(darray<ValueType>(length, 0)) {}
+            data(darray<V>(length, 0)),
+            index(darray<V>(length, 0)) {}
 
     template<typename ValueType, typename IndexType>
-    constexpr auto ASumTree<ValueType, IndexType>
+    constexpr auto IndexTree<ValueType, IndexType>
     ::low_bit(IndexType nums) -> ValueType {
         return nums & (-nums);
     }
 
     template<typename ValueType, typename IndexType>
-    auto ASumTree<ValueType, IndexType>
-    ::at(IndexType i) -> ValueType { return data[i]; }
+    auto IndexTree<ValueType, IndexType>
+    ::at(IndexType i) -> ValueType {
+        return data[i];
+    }
 
     template<typename ValueType, typename IndexType>
-    auto ASumTree<ValueType, IndexType>
+    auto IndexTree<ValueType, IndexType>
     ::size() const -> IndexType {
         return length;
     }
 
     template<typename ValueType, typename IndexType>
-    void ASumTree<ValueType, IndexType>
+    void IndexTree<ValueType, IndexType>
     ::add(IndexType i, ValueType val) {
         i += 1;
         data[i - 1] += val;
@@ -69,12 +73,12 @@ namespace cpparmc::utils {
     }
 
     template<typename ValueType, typename IndexType>
-    auto ASumTree<ValueType, IndexType>::sum() -> ValueType {
+    auto IndexTree<ValueType, IndexType>::sum() -> ValueType {
         return index[length - 1];
     }
 
     template<typename ValueType, typename IndexType>
-    auto ASumTree<ValueType, IndexType>::asum(IndexType i) -> ValueType {
+    auto IndexTree<ValueType, IndexType>::accumulate_sum(IndexType i) -> ValueType {
         if (i < 0) return 0;
         if (i >= length) return this->sum();
 
@@ -91,7 +95,7 @@ namespace cpparmc::utils {
 
     template<typename ValueType, typename IndexType>
     template<typename W>
-    auto ASumTree<ValueType, IndexType>::find(W s) -> IndexType {
+    auto IndexTree<ValueType, IndexType>::find(W s) -> IndexType {
         if (s < index[0]) return 0;
         if (s >= index[length - 1]) return length;
 
@@ -99,13 +103,13 @@ namespace cpparmc::utils {
 
         while (rL + 1 != rR) {
             const IndexType rM = (rL + rR) >> 1U;
-            const ValueType vM = asum(rM);
+            const ValueType vM = accumulate_sum(rM);
             (s >= vM ? rL : rR) = rM;
         }
 
-        assert((asum(rL) <= s) && (s < asum(rR)));
+        assert((accumulate_sum(rL) <= s) && (s < accumulate_sum(rR)));
         return rR;
     }
 }
 
-#endif //CPPARMC_ASUM_TREE_HPP
+#endif //CPPARMC_INDEX_TREE_HPP

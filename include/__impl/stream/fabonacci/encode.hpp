@@ -1,7 +1,7 @@
 #ifndef CPPARMC_FABONACCI_ENCODE_HPP
 #define CPPARMC_FABONACCI_ENCODE_HPP
 
-#include "__impl/stream/stream_base.hpp"
+#include "__impl/stream/generator_base.hpp"
 #include "fibonacci_code.h"
 
 namespace cpparmc::stream {
