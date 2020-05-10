@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <random>
 
-#include "__impl/utils/darray.hpp"
-#include "__impl/utils/index_tree.hpp"
+#include "utils/darray.hpp"
+#include "utils/index_tree.hpp"
 
 namespace cu = cpparmc::utils;
 

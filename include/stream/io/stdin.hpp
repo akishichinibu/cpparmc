@@ -1,7 +1,7 @@
 #ifndef CPPARMC_STDIN_HPP
 #define CPPARMC_STDIN_HPP
 
-#include "__impl/stream/io/buffer_io.hpp"
+#include "stream/io/buffer_io.hpp"
 
 namespace cpparmc::stream {
 

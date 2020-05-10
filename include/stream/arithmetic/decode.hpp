@@ -5,18 +5,15 @@
 #include <algorithm>
 #include <numeric>
 
-#include "__impl/stream/arithmetic/mixin.hpp"
-#include "__impl/stream/generator.hpp"
-#include "__impl/utils/bit_operation.hpp"
+#include "stream/arithmetic/mixin.hpp"
+#include "utils/bit_operation.hpp"
 
 
 namespace cpparmc::stream {
 
-    using namespace setting;
-
     template<typename Source,
             typename CounterType=std::uint64_t,
-            StreamSizeType counter_bit = default_count_bit>
+            StreamSizeType counter_bit = 52>
     class ArithmeticDecode:
             public Generator<Source>,
             protected ArithmeticCodecMixin<CounterType, counter_bit> {

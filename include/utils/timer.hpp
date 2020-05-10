@@ -4,7 +4,7 @@
 #include <chrono>
 #include <cstdio>
 
-#include "__impl/compile_base.h"
+#include "compile_base.h"
 
 #define START_TIMER(name) const auto __t0_##name = std::chrono::steady_clock::now()
 

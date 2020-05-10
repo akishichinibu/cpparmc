@@ -6,10 +6,10 @@
 #include <string_view>
 #include <numeric>
 
-#include "__impl/stream/generator.hpp"
-#include "__impl/utils/timer.hpp"
-#include "__impl/utils/darray.hpp"
-#include "__impl/utils/bit_operation.hpp"
+#include "stream/generator.hpp"
+#include "utils/timer.hpp"
+#include "utils/darray.hpp"
+#include "utils/bit_operation.hpp"
 
 
 namespace cpparmc::stream {

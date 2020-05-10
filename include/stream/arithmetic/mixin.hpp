@@ -1,15 +1,12 @@
 #ifndef CPPARMC_ARITHMETIC_CODEC_MIXIN_H
 #define CPPARMC_ARITHMETIC_CODEC_MIXIN_H
 
-#include "setting.h"
-#include "__impl/utils/darray.hpp"
-#include "__impl/utils/index_tree.hpp"
-#include "__impl/stream/generator.hpp"
+#include "utils/darray.hpp"
+#include "utils/index_tree.hpp"
+#include "stream/generator.hpp"
 
 
 namespace cpparmc::stream {
-
-    using namespace setting;
 
     template<typename CounterType, StreamSizeType cb>
     class ArithmeticCodecMixin {

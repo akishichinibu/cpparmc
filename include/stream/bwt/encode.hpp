@@ -5,12 +5,12 @@
 #include <execution>
 #include <vector>
 
-#include "__impl/compile_base.h"
-#include "__impl/logger.hpp"
+#include "compile_base.h"
+#include "logger.hpp"
 
-#include "__impl/stream/generator.hpp"
-#include "__impl/utils/timer.hpp"
-#include "__impl/utils/darray.hpp"
+#include "stream/generator.hpp"
+#include "utils/timer.hpp"
+#include "utils/darray.hpp"
 
 
 namespace cpparmc::stream {

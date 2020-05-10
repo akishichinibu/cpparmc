@@ -1,8 +1,8 @@
 #ifndef CPPARMC_BWT_DECODE_HPP
 #define CPPARMC_BWT_DECODE_HPP
 
-#include "__impl/compile_base.h"
-#include "__impl/utils/darray.hpp"
+#include "compile_base.h"
+#include "utils/darray.hpp"
 
 namespace cpparmc::stream {
 

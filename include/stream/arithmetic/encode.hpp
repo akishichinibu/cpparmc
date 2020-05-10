@@ -6,21 +6,19 @@
 #include <algorithm>
 #include <numeric>
 
-#include "__impl/utils/bit_operation.hpp"
-#include "__impl/stream/arithmetic/mixin.hpp"
-#include "__impl/stream/generator.hpp"
+#include "utils/bit_operation.hpp"
+#include "mixin.hpp"
+#include "stream/generator.hpp"
 
 
 namespace cpparmc::stream {
-
-    using namespace setting;
 
     typedef struct {
     } VoidSource;
 
     template<typename Source=VoidSource,
             typename CounterType=std::uint64_t,
-            StreamSizeType counter_bit = default_count_bit,
+            StreamSizeType counter_bit = 52,
             std::size_t init_bit_buffer_size = 256>
     class ArithmeticEncode:
             public Generator<Source>,

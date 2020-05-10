@@ -4,7 +4,7 @@
 #include <string>
 #include <tuple>
 
-#include "__impl/stream/generator.hpp"
+#include "stream/generator.hpp"
 
 
 namespace cpparmc::stream {

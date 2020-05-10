@@ -1,7 +1,7 @@
 #ifndef CPPARMC_BUFFER_IO_HPP
 #define CPPARMC_BUFFER_IO_HPP
 
-#include "__impl/stream/generator.hpp"
+#include "stream/generator.hpp"
 
 
 namespace cpparmc::stream {
@@ -10,7 +10,7 @@ namespace cpparmc::stream {
     class BufferIOMixin: public Generator<OutsideSource> {
 
     protected:
-        static_assert(sizeof(max_buffer_size) <= consts::allow_max_buffer_size);
+        static_assert(sizeof(max_buffer_size) <= 1 * 1024 * 1024);
         char buffer[max_buffer_size] {};
 
         std::size_t cursor;
