@@ -30,9 +30,9 @@ namespace cpparmc::stream {
         std::size_t buffer_head;
 
     public:
-        ArithmeticEncode(Source& src, StreamSizeType symbol_bit) noexcept;
+        inline ArithmeticEncode(Source& src, StreamSizeType symbol_bit) noexcept;
 
-        StreamStatus patch() noexcept final;
+        inline StreamStatus patch() noexcept final;
     };
 
     template<typename Source,
@@ -178,7 +178,7 @@ namespace cpparmc::stream {
 #endif
 
         this->update_model(ch);
-        return StreamStatus(std::in_place, 0, 0);
+        return empty_frame;
     }
 }
 

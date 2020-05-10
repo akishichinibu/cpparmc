@@ -19,9 +19,9 @@ namespace cpparmc::stream {
         virtual std::size_t fill() noexcept = 0;
 
     public:
-        BufferIOMixin();
+        inline BufferIOMixin();
 
-        StreamStatus patch() noexcept final;
+        inline StreamStatus patch() noexcept final;
     };
 
     template<std::size_t mb>
@@ -39,7 +39,7 @@ namespace cpparmc::stream {
         cursor = 0;
         buffer_len = 0;
         if (cursor == buffer_len) buffer_len = this->fill();
-        return cursor == buffer_len ? std::nullopt : StreamStatus(std::in_place, 0, 0);
+        return cursor == buffer_len ? std::nullopt : empty_frame;
     }
 }
 

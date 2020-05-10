@@ -4,7 +4,7 @@ SET(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_CXX_STANDARD_REQUIRED True)
 SET(CMAKE_CXX_FLAGS "-std=c++17 -g3 ${CMAKE_CXX_FLAGS}")
 SET(CMAKE_CXX_FLAGS_DEBUG " -O0")
-SET(CMAKE_CXX_FLAGS_RELEASE "-O2 -march=native -ftree-vectorize -fopt-info-vec-missed -fopt-info-inline-missed")
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -ftree-vectorize -fopt-info-vec-missed -fopt-info-inline-missed")
 SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 SET(CMAKE_VERBOSE_MAKEFILE ON)
 

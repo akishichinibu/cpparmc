@@ -30,7 +30,7 @@ namespace cpparmc::stream {
     public:
         inline explicit ArithmeticCodecMixin(StreamSizeType symbol_bit) noexcept;
 
-        ArithmeticCodecMixin() = default;
+        inline ArithmeticCodecMixin() = default;
 
         inline void update_model(SymbolType symbol) noexcept;
     };

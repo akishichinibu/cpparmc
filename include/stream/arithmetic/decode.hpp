@@ -20,9 +20,9 @@ namespace cpparmc::stream {
         CounterType value;
 
     public:
-        explicit ArithmeticDecode(Source& src) noexcept;
+        inline explicit ArithmeticDecode(Source& src) noexcept;
 
-        StreamStatus patch() noexcept final;
+        inline StreamStatus patch() noexcept final;
     };
 
     template<typename Source, typename CounterType, StreamSizeType cb>
@@ -140,7 +140,7 @@ namespace cpparmc::stream {
             assert((this->L <= value) && (value < this->R));
         }
 
-        return StreamStatus(std::in_place, 0, 0);
+        return empty_frame;
     }
 }
 

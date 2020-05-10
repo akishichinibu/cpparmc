@@ -13,7 +13,7 @@ namespace cpparmc::stream {
 
     struct OutsideSource {};
 
-    template<typename Source, std::size_t init_bit_buffer_size = 256>
+    template<typename Source, std::size_t init_bit_buffer_size = 4096>
     class Generator {
         constexpr static auto max_buffer_width = std::numeric_limits<BufferType>::digits;
 
@@ -26,20 +26,20 @@ namespace cpparmc::stream {
     protected:
         explicit Generator(Source& src) noexcept;
 
-        virtual StreamStatus patch() noexcept = 0;
+        virtual inline StreamStatus patch() noexcept = 0;
 
-        void send(StreamSizeType size, SymbolType buf) noexcept;
+        inline void send(StreamSizeType size, SymbolType buf) noexcept;
 
-        [[nodiscard]] bool src_eof() const noexcept;
+        [[nodiscard]] inline bool src_eof() const noexcept;
 
         Source& src;
 
     public:
-        [[nodiscard]] bool eof() const noexcept;
+        [[nodiscard]] inline bool eof() const noexcept;
 
-        bool next() noexcept;
+        inline bool next() noexcept;
 
-        StreamStatus next(std::uint8_t width, bool force_align=false) noexcept;
+        inline StreamStatus next(std::uint8_t width, bool force_align=false) noexcept;
     };
 
     template<typename Source, std::size_t ib>

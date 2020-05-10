@@ -9,9 +9,9 @@ namespace cpparmc::stream {
     class StdInputStream: public BufferIOMixin<max_buffer_size> {
 
     public:
-        explicit StdInputStream() noexcept;
+        inline explicit StdInputStream() noexcept;
 
-        std::size_t fill() noexcept final;
+        inline std::size_t fill() noexcept final;
     };
 
     template<std::size_t mb>
