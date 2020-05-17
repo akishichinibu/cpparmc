@@ -26,9 +26,9 @@ namespace cpparmc::stream {
 
     template<std::size_t mb>
     BufferIOMixin<mb>::BufferIOMixin():
-    Generator<OutsideSource>(*this),
-    cursor(0),
-    buffer_len(0) {}
+            Generator<OutsideSource>(*this),
+            cursor(0),
+            buffer_len(0) {}
 
     template<std::size_t mb>
     StreamStatus BufferIOMixin<mb>::patch() noexcept {

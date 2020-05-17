@@ -21,7 +21,7 @@ namespace cpparmc::stream {
         // [0.75, 1)
         constexpr static CounterType cr = cl + cm;
 
-        std::uint8_t symbol_bit{};
+        std::uint8_t symbol_bit {};
         CounterType total_symbol;
 
         CounterType L, R, D, follow;

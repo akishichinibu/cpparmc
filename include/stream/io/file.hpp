@@ -57,11 +57,11 @@ namespace cpparmc::stream {
 
     public:
         explicit FileInputStream(const std::string& fn):
-        FileMixin(fn),
-        BufferIOMixin<max_buffer_size>(*this),
-        cursor(0),
-        buffer_len(0),
-        count(0) {
+                FileMixin(fn),
+                BufferIOMixin<max_buffer_size>(*this),
+                cursor(0),
+                buffer_len(0),
+                count(0) {
             this->open("rb");
             std::setvbuf(this->file, nullptr, _IONBF, max_buffer_size);
         }

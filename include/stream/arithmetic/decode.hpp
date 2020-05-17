@@ -27,14 +27,14 @@ namespace cpparmc::stream {
 
     template<typename Source, typename CounterType, StreamSizeType cb>
     ArithmeticDecode<Source, CounterType, cb>::ArithmeticDecode(Source& src) noexcept:
-    Generator<Source>(src),
-    ArithmeticCodecMixin<CounterType, cb>([&](){
-        const auto frame = src.next(8);
-        return std::get<1>(frame.value());
-    }()),
-    value([&](){
-        return std::get<1>(src.next(cb, true).value());
-    }()) {
+            Generator<Source>(src),
+            ArithmeticCodecMixin<CounterType, cb>([&]() {
+                const auto frame = src.next(8);
+                return std::get<1>(frame.value());
+            }()),
+            value([&]() {
+                return std::get<1>(src.next(cb, true).value());
+            }()) {
 #ifdef CPPARMC_DEBUG_ARITHMETIC_DECODER
         DEBUG_PRINT("The symbol bit of arithmetic code is {:d}. value {:d}. ",
                 this->symbol_bit,
@@ -85,7 +85,6 @@ namespace cpparmc::stream {
                      symbol, value, this->L, this->R, rR, oL, oR);
 #endif
         assert((this->L < this->R) && (this->R <= this->counter_limit));
-
 
 
         while (true) {

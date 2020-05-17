@@ -19,7 +19,6 @@ namespace cpparmc::stream {
 
     template<typename Device, std::size_t init_buffer_size = 4 * 1024 * 1024>
     class BWTEncode: public Generator<Device> {
-
         StreamSizeType symbol_bits;
         std::uint64_t total_symbol;
 
@@ -135,7 +134,7 @@ namespace cpparmc::stream {
     template<typename Device, std::size_t ib>
     auto BWTEncode<Device, ib>::patch() noexcept -> StreamStatus {
         return buffer_pos < buffer.size() ?
-        StreamStatus(std::in_place, symbol_bits, buffer.at(buffer_pos++)) : std::nullopt;
+               StreamStatus(std::in_place, symbol_bits, buffer.at(buffer_pos++)) : std::nullopt;
     }
 }
 

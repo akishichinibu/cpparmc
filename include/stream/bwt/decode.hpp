@@ -128,7 +128,7 @@ namespace cpparmc::stream {
     auto BWTDecode<Device, ib>
     ::patch() noexcept -> StreamStatus {
         return buffer_pos < buffer.size() ?
-        StreamStatus(std::in_place, this->symbol_bit, buffer.at(buffer_pos++)) : std::nullopt;
+               StreamStatus(std::in_place, this->symbol_bit, buffer.at(buffer_pos++)) : std::nullopt;
     }
 }
 

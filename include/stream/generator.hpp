@@ -11,12 +11,12 @@ namespace cpparmc::stream {
 
     constexpr StreamStatus empty_frame = StreamStatus(std::in_place, 0, 0);
 
-    struct OutsideSource {};
+    struct OutsideSource {
+    };
 
     template<typename Source, std::size_t init_bit_buffer_size = 4096>
     class Generator {
         constexpr static auto max_buffer_width = std::numeric_limits<BufferType>::digits;
-
         bool _eof {};
 
         std::vector<bool> _i_buffer;
@@ -39,14 +39,14 @@ namespace cpparmc::stream {
 
         inline bool next() noexcept;
 
-        inline StreamStatus next(std::uint8_t width, bool force_align=false) noexcept;
+        inline StreamStatus next(std::uint8_t width, bool force_align = false) noexcept;
     };
 
     template<typename Source, std::size_t ib>
     Generator<Source, ib>::Generator(Source& src) noexcept:
-    _i_buffer_pos(0),
-    _output_count(0),
-    src(src) {
+            _i_buffer_pos(0),
+            _output_count(0),
+            src(src) {
         _i_buffer.reserve(ib);
     }
 

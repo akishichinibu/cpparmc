@@ -16,7 +16,7 @@ namespace cpparmc::stream {
 
     template<typename Device>
     class RLEEncode: public Generator<Device> {
-        typedef Generator<Device> generator_type;
+        typedef Generator <Device> generator_type;
 
         SymbolType previous_symbol;
         std::uint64_t repeat_count;
@@ -41,10 +41,10 @@ namespace cpparmc::stream {
             symbol_bit(symbol_bit),
             counter_width(counter_width),
             counter_limit(1U << counter_width) {
-                DEBUG_PRINT("read a block with symbol_bit: {:d}, symbol_bit: {:d}. ", symbol_bit, counter_width);
-                this->send(8, symbol_bit);
-                this->send(8, counter_width);
-            }
+        DEBUG_PRINT("read a block with symbol_bit: {:d}, symbol_bit: {:d}. ", symbol_bit, counter_width);
+        this->send(8, symbol_bit);
+        this->send(8, counter_width);
+    }
 
     template<typename Device>
     auto RLEEncode<Device>::patch() noexcept -> StreamStatus {
