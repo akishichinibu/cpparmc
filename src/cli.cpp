@@ -38,33 +38,50 @@ int main(int argc, char** argv) {
         }
     });
 
-//    // RLE
-//    std::uint64_t rle_counter_bit {4};
-//    std::size_t rle_symbol_bit {8};
-//
-//    bool rle_is_encode = false;
-//    auto sc_rle = app.add_subcommand("rle", "The Run-length encoding of the input. ");
-//
-//    sc_rle->add_flag("-e,!-d,--encode,!--decode", rle_is_encode)->required();
-//
-//    sc_rle->add_option<std::size_t>("-s,--symbol_bit", rle_symbol_bit, "The symbol bit for RLE. ")
-//            ->check(CLI::Validator(CLI::Range(0, 32)));
-//
-//    sc_rle->add_option<std::uint64_t>("-c,--counter_bit", rle_counter_bit, "The counter bit nums for RLE. ")
-//            ->check(CLI::Validator(CLI::Range(0, 64)));
-//
-//    sc_rle->callback([&]() {
-//
-//        cs::StandardIOStream<> inp;
-//
-//        if (rle_is_encode) {
-//            cs::RLEEncode<cs::StandardIOStream<>> s1(inp, rle_symbol_bit, rle_counter_bit);
+    //FIB
+    bool fib_is_encode = false;
+    auto sc_fib = app.add_subcommand("fib", "The Fibonacci encoding of the input. ");
+
+    sc_fib->add_flag("-e,!-d,--encode,!--decode", fib_is_encode)->required();
+
+    sc_fib->callback([&]() {
+        cs::StdInputStream<> inp;
+
+        if (fib_is_encode) {
+            cs::FibonacciEncode<cs::StdInputStream<>> s1(inp);
+            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
+        } else {
+//            cs::F<cs::StdInputStream<>> s1(inp);
 //            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
-//        } else {
-//            cs::RLEDecode<cs::StandardIOStream<>> s1(inp);
-//            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
-//        }
-//    });
+        }
+    });
+
+    // RLE
+    std::uint64_t rle_counter_bit {4};
+    std::size_t rle_symbol_bit {8};
+
+    bool rle_is_encode = false;
+    auto sc_rle = app.add_subcommand("rle", "The Run-length encoding of the input. ");
+
+    sc_rle->add_flag("-e,!-d,--encode,!--decode", rle_is_encode)->required();
+
+    sc_rle->add_option<std::size_t>("-s,--symbol_bit", rle_symbol_bit, "The symbol bit for RLE. ")
+            ->check(CLI::Validator(CLI::Range(0, 32)));
+
+    sc_rle->add_option<std::uint64_t>("-c,--counter_bit", rle_counter_bit, "The counter bit nums for RLE. ")
+            ->check(CLI::Validator(CLI::Range(0, 64)));
+
+    sc_rle->callback([&]() {
+        cs::StdInputStream<> inp;
+
+        if (rle_is_encode) {
+            cs::RLEEncode<cs::StdInputStream<>> s1(inp, rle_symbol_bit, rle_counter_bit);
+            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
+        } else {
+            cs::RLEDecode<cs::StdInputStream<>> s1(inp);
+            cu::read_while_eof(s1, [&](auto ch) { std::cout.put(ch); });
+        }
+    });
 
     // ARMC
     std::size_t arith_symbol_bit {8};

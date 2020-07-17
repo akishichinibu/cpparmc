@@ -35,7 +35,7 @@ namespace cpparmc::stream {
     template<typename Device>
     RLEEncode<Device>
     ::RLEEncode(Device& device, std::uint8_t symbol_bit, std::uint8_t counter_width) noexcept:
-            Generator<Device>(device, 8, 8, true),
+            Generator<Device>(device),
             previous_symbol(EOF),
             repeat_count(0),
             symbol_bit(symbol_bit),
@@ -53,10 +53,11 @@ namespace cpparmc::stream {
         if (this->src_eof()) {
             if (previous_symbol == EOF) return std::nullopt;
 
-            bits::concat_bits(previous_symbol, repeat_count, counter_width);
-            const StreamStatus r(std::in_place, symbol_bit + counter_width, previous_symbol);
+            this->send(symbol_bit, previous_symbol);
+            this->send(counter_width, repeat_count);
+
             previous_symbol = EOF;
-            return r;
+            return empty_frame;
         }
 
         const auto ch = std::get<1>(frame.value());
@@ -72,11 +73,12 @@ namespace cpparmc::stream {
             return empty_frame;
         }
 
-        bits::concat_bits(previous_symbol, repeat_count, counter_width);
-        const StreamStatus r(std::in_place, symbol_bit + counter_width, previous_symbol);
+        this->send(symbol_bit, previous_symbol);
+        this->send(counter_width, repeat_count);
+
         repeat_count = 0;
         previous_symbol = ch;
-        return r;
+        return empty_frame;
     }
 }
 

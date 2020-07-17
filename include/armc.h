@@ -12,6 +12,9 @@
 #include "stream/bwt/encode.hpp"
 #include "stream/bwt/decode.hpp"
 
+#include "stream/fibonacci/encode.hpp"
+#include "stream/fibonacci/decode.hpp"
+
 #include "stream/rle/encode.hpp"
 #include "stream/rle/decode.hpp"
 

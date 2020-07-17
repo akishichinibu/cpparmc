@@ -23,7 +23,7 @@ namespace cpparmc::stream {
     template<typename Source, typename SizeType>
     RLEDecode<Source, SizeType>
     ::RLEDecode(Source& src):
-            Generator<Source>(src, 8, 8, false),
+            Generator<Source>(src),
             previous_symbol(EOF),
             repeat_count(0),
             symbol_bit([&]() {
